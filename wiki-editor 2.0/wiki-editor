@@ -1,0 +1,107 @@
+#!/bin/bash
+#Hitokiri
+#2010
+help="
+Kullanım: wiki-editor [DOSYA]...
+Yardım: wiki-editor [Seçenek] ....
+Seçenekler:
+-v,--version , 	Versiyon bilgisini yazar ve çıkar..
+-d ,--debug , 	Hata kayıtlarını log dosyasına yazın 
+		log dosyasına ulaşmak için
+		nano  ~/.config/wiki-editor.log komutunu kullanabilirsiniz.
+-k ,--kısayol , Programda kullanılan tuş kombinasyonlarını öğrenin..	
+-l,--lisans, 	Lisans bilgisini almak için.
+-h,--help ,	Yardım seçenekleri için inceleyin..
+--help-all , 	Tüm belgeyi okuyun..
+"
+Lisans="
+
+Wiki Editor özgür bir yazılımdır, onu Özgür Yazılım
+Vakfı'nın yayınladığı GNU Genel Kamu Lisansı'nın 2.
+sürümü veya (tercihinize bağlı) daha sonraki sürümleri
+altında dağıtabilir ve/veya değiştirebilirsiniz.
+
+
+Wiki Editor  faydalı olacağı umut edilerek dağıtılmaktadır,
+fakat HİÇBİR GARANTİSİ YOKTUR; hatta ÜRÜN DEĞERİ
+ya da BİR AMACA UYGUNLUK gibi garantiler de
+vermez. Lütfen GNU Genel Kamu Lisansı'nı daha fazla
+ayrıntı için inceleyin.
+
+
+
+Lütfen hataları bildirin 
+Anıl Çörekcioğlu  <anilcorekci@gmail.com>
+"
+ksayol="
+<control>N		Yeni bir pencere açmak için,
+<control>O		Bir metin belgesi açmak için,
+<control>S		Yapılan değişiklikleri kayıt etmek için,
+<control>F		Kelime grubunda arama yapmak için,
+<control>Q		Programdan çıkmak için
+
+<control>Z  		Geri Al,          
+<shift><control>Z       Tekrar Yap,
+<control>P		Tercihler,      
+                
+<control>F1             Temsili Görünüm, 
+
+<control>E		Boşlukları Kodla ,
+<control><shift>E       Boşlukları Kodlama ,
+<control>W		Wiki Kodlarını Pasifleştir ,  
+<control><shift>W	Wiki Kodlarını Pasifleştirme,
+<control><shift>M	Maddele,
+<control><shift>N	Maddeleme, 
+
+F11		Tam Ekran Moduna Geçmek için,
+F1		İçindekiler sayfasına gitmek için,
+"   
+dizin='./pyler'
+#mkdir -p ~/.gconf/apps/wiki-editor/
+# touch -a ~/.gconf/apps/wiki-editor/%gconf.xml  
+#if [ "`(grep $ ~/.gconf/apps/wiki-editor/%gconf.xml -c )`" -ne "24" ];then
+#	python $dizin/default_conf.py
+#fi 
+while test $# -gt 0 ; do
+  case $1 in
+    -h | --help)       
+      echo "$help"
+      exit $?
+      ;;
+    -v |--version)
+      echo "Wiki Editor 1.9"
+      exit $?
+      ;;
+      -k |--kısayol)
+      echo "$ksayol"
+      exit $?
+      ;; 
+      -d |--debug)                        
+      date|tee -a /tmp/wiki-editor.log
+      cd "$dizin" ; python3 ./wiki_editor.py  2>&1 |tee -a /tmp/wiki-editor.log
+      exit $?
+      ;;
+    -l | --lisans)                        
+      echo "$Lisans"
+      exit $?
+      ;;
+    --help-all)                        
+      echo "$help$ksayol$Lisans" 
+      exit $?
+      ;;      
+    --)                 
+      echo "Bilinmeyen seçenek."       
+      shift
+      break
+      ;;
+    -*)                      
+      echo "$help"
+      exit 1
+      ;;
+    /*)
+      cd "$dizin" ; python3 ./wiki_editor.py   "$1"
+      exit 1
+      ;;
+  esac
+done
+cd "$dizin" ; python3 ./wiki_editor.py

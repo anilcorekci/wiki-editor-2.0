@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated with glade 3.38.2 -->
+<interface>
+  <requires lib="gtk+" version="3.0"/>
+  <object class="GtkWindow" id="window1">
+    <property name="can-focus">False</property>
+    <property name="has-focus">True</property>
+    <property name="is-focus">True</property>
+    <property name="title" translatable="yes">SUDO Şablonu</property>
+    <property name="resizable">False</property>
+    <property name="window-position">mouse</property>
+    <property name="destroy-with-parent">True</property>
+    <property name="icon">../Simgeler/14-SUDO.png</property>
+    <property name="type-hint">dialog</property>
+    <property name="gravity">center</property>
+    <child>
+      <object class="GtkHBox" id="hbox1">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="border-width">22</property>
+        <child>
+          <object class="GtkVBox" id="vbox1">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="spacing">7</property>
+            <child>
+              <object class="GtkTable" id="table2">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="border-width">9</property>
+                <property name="n-rows">4</property>
+                <property name="n-columns">2</property>
+                <property name="column-spacing">15</property>
+                <property name="row-spacing">12</property>
+                <child>
+                  <object class="GtkLabel" id="label1">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Hangi Dergi Sayısı  ?      </property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="label2">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Hangi  Tarihte ?             </property>
+                  </object>
+                  <packing>
+                    <property name="top-attach">1</property>
+                    <property name="bottom-attach">2</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="label3">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Hangi Dergi Sayfaları ? </property>
+                  </object>
+                  <packing>
+                    <property name="top-attach">2</property>
+                    <property name="bottom-attach">3</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="label4">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Konu Yazrı Kim ?           </property>
+                  </object>
+                  <packing>
+                    <property name="top-attach">3</property>
+                    <property name="bottom-attach">4</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="entry1">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="invisible-char">●</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="right-attach">2</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="entry2">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="invisible-char">●</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="right-attach">2</property>
+                    <property name="top-attach">1</property>
+                    <property name="bottom-attach">2</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="entry3">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="invisible-char">●</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="right-attach">2</property>
+                    <property name="top-attach">2</property>
+                    <property name="bottom-attach">3</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkEntry" id="entry4">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="invisible-char">●</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="right-attach">2</property>
+                    <property name="top-attach">3</property>
+                    <property name="bottom-attach">4</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

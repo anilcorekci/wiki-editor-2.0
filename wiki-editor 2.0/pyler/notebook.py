@@ -527,9 +527,9 @@ class hitokiri(object):
 		for add in range(1,4):
 
 			self.wrap_mode[add].extend( [builder.get_object("radiobutton"+str(add)), False] )
-			self.wrap_mode[add][1].connect("clicked",self.radio_wrap)
+			self.wrap_mode[add][1].connect("clicked",self.)
 
-			if self.wrap_mode[add][0] is data["wrap_mode"].split("|")[0]:
+			if self.wrap_mode[add][0] == data["wrap_mode"].split("|")[0]:
 				self.wrap_mode[add][1].set_active(True)
 
 		self.pencere.show_all()
@@ -567,7 +567,7 @@ class hitokiri(object):
 				if ef is True:
 					return self.wrap_mode[radio][0]
 				self.editor().set_wrap_mode(getattr(gtk.WrapMode, self.wrap_mode[radio][0]))
-
+				break
 		#	print(self.wrap_mode[radio])
    		
 	def ac(self, w, data=False):

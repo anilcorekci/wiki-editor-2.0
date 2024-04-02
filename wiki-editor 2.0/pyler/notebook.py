@@ -527,7 +527,7 @@ class hitokiri(object):
 		for add in range(1,4):
 
 			self.wrap_mode[add].extend( [builder.get_object("radiobutton"+str(add)), False] )
-			self.wrap_mode[add][1].connect("clicked",self.)
+			self.wrap_mode[add][1].connect("clicked",self.radio_wrap)
 
 			if self.wrap_mode[add][0] == data["wrap_mode"].split("|")[0]:
 				self.wrap_mode[add][1].set_active(True)

@@ -672,7 +672,7 @@ class hitokiri(object):
 				self.editor().modify_font(self.yazitipi)
 
 			elif settings == "yazi_tipi" and eval(set_value_as) is True:
-				undo_font = getattr(self.editor(), set_value)
+				undo_font = getattr(self.editor(), set_value)(None)
 
 			elif "sekme" == settings:
 				getattr(self.editor(), set_value) (int(set_value_as.split(".0")[0]))

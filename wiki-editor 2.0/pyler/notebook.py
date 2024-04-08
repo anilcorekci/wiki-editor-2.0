@@ -103,7 +103,7 @@ class hitokiri(object):
 		wiki.ileti = self.ileti
 		wiki.statu = self.statu
 ####################################################
-		
+
 		self.hbox.pack_start(self.ileti,True,False,0)
 		self.hbox.pack_end(self.buton,False,True,30)
 		self.hbox.pack_start(self.statu,False,True,0)
@@ -138,6 +138,7 @@ class hitokiri(object):
 		self.name = label.get_text()
 		text = label.get_tooltip_text()
 		yol = text.split(":")[1]
+
 		if os.path.isfile(yol):
 			self.yol = text.split(":")[1]
 			return False
@@ -489,7 +490,7 @@ class hitokiri(object):
 		builder.add_from_file("../Glade/tercihler.glade")	
 		vbox = builder.get_object("hbuttonbox1")
 		self.pencere = builder.get_object("window1")
-		self.pencere.set_modal(True)  
+	#	self.pencere.set_modal(True)  
 		self.pencere.connect("delete_event",ayar)
 
 
@@ -505,22 +506,22 @@ class hitokiri(object):
 		self.aadj =  builder.get_object("spinbutton1")	
 		self.aadj.connect("value_changed",self.adj)
 
-		self.aadj.set_value(float(data["sekme"].split("|")[0] ) )
+		self.aadj.set_value(float(data["sekme"][0] ) )
 
 
 		self.yazi = builder.get_object("fontbutton1")
-		self.yazi.set_font_name(data["font"].split("|")[0])
+		self.yazi.set_font_name(data["font"][0])
 
 		self.but =  builder.get_object("checkbutton1")	
 		self.but.connect("toggled",self.sayi)
 
-		self.but.set_active(eval(data["sekmeleri_say"].split("|")[0] ))
+		self.but.set_active(eval(data["sekmeleri_say"][0] ))
 
 
 		self.buton =  builder.get_object("checkbutton2")
 		self.buton.connect("toggled",self.yazil)
 
-		self.buton.set_active(eval(data["yazi_tipi"].split("|")[0] ))
+		self.buton.set_active(eval(data["yazi_tipi"][0] ))
 
 		self.wrap_mode = {1:["WORD"], 2:["CHAR"], 3:["NONE"]}
 
@@ -529,8 +530,9 @@ class hitokiri(object):
 			self.wrap_mode[add].extend( [builder.get_object("radiobutton"+str(add)), False] )
 			self.wrap_mode[add][1].connect("clicked",self.radio_wrap)
 
-			if self.wrap_mode[add][0] == data["wrap_mode"].split("|")[0]:
+			if self.wrap_mode[add][0] == data["wrap_mode"][0]:
 				self.wrap_mode[add][1].set_active(True)
+
 
 		self.pencere.show_all()
 
@@ -609,7 +611,9 @@ class hitokiri(object):
 		
 		if data is not False:
 			cur.execute('SELECT preference, value FROM settings')
-			ans = dict(cur.fetchall())
+			ans = dict(cur.fetchall()) #; print(ans)
+			#split "|" and convert key item as a list
+			ans = {key: ans[key].split("|") for key in ans} #;print(ans)
 			return ans
 
 #########################################
@@ -658,8 +662,8 @@ class hitokiri(object):
 		undo_font = False
 
 		for settings in data:
-			set_value_as = data[settings].split("|")[0]
-			set_value = data[settings].split("|")[1]
+			set_value_as = data[settings][0]
+			set_value = data[settings][1]
 
 			if  settings == "wrap_mode":
 				self.editor().set_wrap_mode(getattr(gtk.WrapMode, set_value_as))

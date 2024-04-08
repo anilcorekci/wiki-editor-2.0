@@ -659,9 +659,8 @@ class hitokiri(object):
 	def ayarlar(self):
 
 		data = self.ayar(True)
-		undo_font = False
 
-		for settings in data:
+		for settings in sorted(data):
 			set_value_as = data[settings][0]
 			set_value = data[settings][1]
 
@@ -681,7 +680,6 @@ class hitokiri(object):
 			elif "sekmeleri_say" == settings:
 				getattr(self.editor(), set_value) (eval(set_value_as))
 
-		if undo_font: undo_font(None)
 
 	def tasi(self, w, data=False):
 		self.dialog = gtk.FileChooserDialog("Değişikliklerle Birlikte Metni Kaydet..",

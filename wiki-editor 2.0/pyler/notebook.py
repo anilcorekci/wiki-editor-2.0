@@ -8,17 +8,18 @@ from gi.repository import Gdk as gdk
 from gi.repository import GdkPixbuf
 from gi.repository import Pango as pango
 
-import os, urllib,re,sys #pango
+import os, re
 import sqlite3
-TARGET_TYPE_URI_LIST = 80
 import araclar as ar
 import wikitext as wiki
 import uyeol as ol
 
 
-wiki_db = os.environ['HOME']+"/.wiki_editor.db"
 
+TARGET_TYPE_URI_LIST = 80
+wiki_db = os.environ['HOME']+"/.wiki_editor.db"
 UI_INFO = ar.UI_INFO
+
 
 class hitokiri(object):
 	def get_main_menu(self, pencere):
@@ -26,15 +27,11 @@ class hitokiri(object):
 		action_group = gtk.ActionGroup(name="my_actions" )
 		action_group.add_actions(self.menu_items)
 
-        # Throws exception if something went wrong
 		uimanager.add_ui_from_string(UI_INFO)
 		uimanager.insert_action_group(action_group)
 
-
-        # Add the accelerator group to the toplevel window
 		accelgroup = uimanager.get_accel_group()
 		pencere.add_accel_group(accelgroup)
-
 
 		return uimanager.get_widget("/MenuBar")
 
@@ -99,9 +96,9 @@ class hitokiri(object):
 		self.buton =  self.menu(ar.langs) 
 		self.ileti = gtk.Label()
 
-####################################################
-		wiki.ileti = self.ileti
-		wiki.statu = self.statu
+################ variable can be passed too.####################################
+#		wiki.ileti = self.ileti
+#		wiki.statu = self.statu
 ####################################################
 
 		self.hbox.pack_start(self.ileti,True,False,0)
@@ -142,34 +139,37 @@ class hitokiri(object):
 		if os.path.isfile(yol):
 			self.yol = text.split(":")[1]
 			return False
+		
 		self.yol = text.split(":")[1] + text.split(":")[2]
 
-	#	print(self.yol)
 
 	def editor(self):
 		page = self.notebook.get_current_page()
 		sw = self.notebook.get_nth_page(page)
 		try:
-			buffer = sw.get_widget() 
-	#		print (buffer)
+			buffer = sw.get_widget()
+			buffer.set_left_margin(8)
+
 		except AttributeError:
-			buffer = None	
+			buffer = None				
 		return buffer
+	
 	def menu(self,item):
 		self.menu = gtk.Menu()
 		for x in item:
 			menu_items = gtk.MenuItem(x)   
 			self.menu.append(menu_items)
-	#		print(x)
 			menu_items.connect("activate", self.menuitem_response, x)
 			menu_items.show()
 			ek = self.resim_label_box(False,"Düz Metin")
+
 		buton = gtk.Button()
 		buton.set_relief(gtk.ReliefStyle.NONE)
 		buton.connect_object("event", self.button_press, self.menu)
 		buton.add(ek)
 		buton.show()
 		return buton
+	
 	def resim_label_box(self, resim_filename, label_text):
 		box1 = gtk.HBox()
 		image = gtk.Image()
@@ -179,6 +179,7 @@ class hitokiri(object):
 		box1.pack_start(image,False,False,0)
 		box1.show_all()
 		return box1
+	
 	def button_press(self, widget, event):
 	#	print(widget, event.type)
 		if event.type == gdk.EventType.BUTTON_PRESS:
@@ -186,6 +187,7 @@ class hitokiri(object):
 			widget.popup(None, None, None, event.button, event.time, event.time)
 			return True
 		return False
+	
 	def menuitem_response(self, widget, string):
 		self.lang= "%s" % string
 		self.label.set_text(self.lang)
@@ -268,7 +270,6 @@ class hitokiri(object):
 			grep=re.findall(".*?../", baslik)
 			for i in grep:
 				baslik=baslik.replace(i, "")
-			
 
 		merhaba = self.note_label_box( '../Simgeler/kapat.svg',baslik,yol)
 		buf = wiki.wikieditor()
@@ -448,7 +449,7 @@ class hitokiri(object):
 		hbox = gtk.VBox()
 
 		self.radio = {}
-		for buton, order in zip(self.bilgi,range(1, len(self.bilgi)+1)):
+		for order in range(1, len(self.bilgi)+1):
 			if order == 1:
 				self.radio[order] =  gtk.RadioButton(None,None)
 			else:	
@@ -481,10 +482,11 @@ class hitokiri(object):
 		self.notebook.show()	
 		if self.notebook.get_n_pages() < 1:
 			self.sek(1,False,False)
-			self.editor().get_buffer().set_text(ar.lisans)
-			self.editor().get_buffer().insert_at_cursor(ar.ksayol)
+			buffer = self.editor().get_buffer()
+			buffer.set_text(ar.lisans+"\n"+ar.ksayol)
+			buffer.set_undo_manager()
+			buffer.set_modified(False)
 
-			self.editor().get_buffer().set_modified(False)
    
 		builder = gtk.Builder()        
 		builder.add_from_file("../Glade/tercihler.glade")	
@@ -557,7 +559,7 @@ class hitokiri(object):
 			self.editor().set_border_window_size(gtk.TextWindowType.LEFT,  57)
 			self.editor().set_show_line_numbers(True)
 		else:    		
-			self.editor().set_border_window_size(gtk.TextWindowType.LEFT,  0)
+			self.editor().set_border_window_size(gtk.TextWindowType.LEFT,  4)
 
 	def radio_wrap(self,ef=False):	
 
@@ -628,57 +630,39 @@ class hitokiri(object):
 			"sekmeleri_say": [ str(self.but.get_active()), "set_show_line_numbers"],
 			"wrap_mode":[wrap_mode, "set_wrap_mode"],
 			}
-		
-
-	#	con.commit()			
-	#	cur.execute("CREATE TABLE settings(preference, value)")
-	#	cur.executemany("INSERT INTO settings VALUES(?, ?) ", data)
-	
-	#	cur.executemany("REPLACE INTO settings VALUES(?, ?) ", data)
-	#	con.commit()			
-	#	con.execute("SELECT preference, value, COUNT(*) FROM settings GROUP BY  preference, value HAVING COUNT(*)>1")
-	#	cur.execute("SELECT * FROM settings")
-	#	con.execute("""DELETE FROM settings
-	#	WHERE  preference NOT IN (
-	#		SELECT MIN( preference)
-	#		FROM settings
-	#		GROUP BY preference, value
-	#	); """)
-	#q	con.commit()			
+			
 		for i in data:
 			preference = i
 			value = data[i]
-			# print(preference, value)
 			cur.execute("UPDATE  settings SET value='"+ value[0] +"|" + value[1] +"' WHERE preference='%s'" % preference) 
 
 		con.commit()	
-		#print('Results:', results)
-		# store all the fetched data in the ans variable
 		self.ayarlar()
 
 	def ayarlar(self):
 
 		data = self.ayar(True)
+		editor = self.editor()
 
 		for settings in sorted(data):
 			set_value_as = data[settings][0]
 			set_value = data[settings][1]
-
+			
 			if  settings == "wrap_mode":
-				self.editor().set_wrap_mode(getattr(gtk.WrapMode, set_value_as))
+				getattr(editor, set_value) (getattr(gtk.WrapMode, set_value_as))
 
 			elif settings == "font":
 				self.yazitipi = pango.FontDescription(set_value_as)
-				self.editor().modify_font(self.yazitipi)
+				getattr(editor, set_value)(self.yazitipi)
 
 			elif settings == "yazi_tipi" and eval(set_value_as) is True:
-				undo_font = getattr(self.editor(), set_value)(None)
+				getattr(editor, set_value)(None)
 
 			elif "sekme" == settings:
-				getattr(self.editor(), set_value) (int(set_value_as.split(".0")[0]))
+				getattr(editor, set_value) (int(set_value_as.split(".0")[0]))
 
 			elif "sekmeleri_say" == settings:
-				getattr(self.editor(), set_value) (eval(set_value_as))
+				getattr(editor, set_value) (eval(set_value_as))
 
 
 	def tasi(self, w, data=False):
@@ -704,8 +688,7 @@ class hitokiri(object):
 		
 		if response == gtk.ResponseType.OK:
 			bilgi = self.dialog.get_filename()
-			start, end = self.editor().get_buffer().get_bounds()
-			konu= self.editor().get_buffer().get_slice(start, end, w)
+			konu = self.get_konu(True)
 			
 			try:
 				dosya = open(bilgi ,"w")
@@ -725,26 +708,43 @@ class hitokiri(object):
 		else:
 			self.dialog.destroy()	
 
+	def set_text(self, text):
+
+		buffer = self.editor().get_buffer()
+		start, end = buffer.get_selection_bounds()
+		buffer.begin_user_action()
+		buffer.delete(start, end)
+		buffer.insert_at_cursor(text)
+		buffer.end_user_action()
+
 	def secim(self, par, ca ):
-		if  self.editor():
-			buffer = self.editor().get_buffer()
-			bounds = buffer.get_selection_bounds()
-			self.konu = None
-			if bounds:
-				start, end = bounds
-				self.konu = self.editor().get_buffer().get_slice(start, end,1)
+		self.konu = self.get_konu()
 
-				self.editor().get_buffer().begin_user_action()
-				self.editor().get_buffer().delete(start, end)
-				self.editor().get_buffer().insert_at_cursor(par + self.konu + ca)
-				self.editor().get_buffer().end_user_action()
-				return True
-			else:
-				self.ileti.set_text("Seçili hiç bir metin yok !")
-				return None 		
+		if  self.editor() and self.konu:
+			self.set_text(par + self.konu + ca)
+			return True
 		else:
-			return None	
+			self.ileti.set_text("Seçili hiç bir metin yok !")
+			return None 		
 
+	def get_konu(self, all_text=False):
+		buffer = self.editor().get_buffer()
+
+		if all_text == True:
+			start, end = buffer.get_bounds()
+			konu= buffer.get_slice(start, end,1)
+			return konu
+		
+
+		bounds = buffer.get_selection_bounds()
+
+		if bounds:
+			start, end = bounds
+			konu = self.editor().get_buffer().get_slice(start, end,1)
+			return konu
+		else:
+			self.ileti.set_text("Seçili hiç bir metin yok !")
+			return False
 	
 	def SUDO(self, SUDO):
 
@@ -753,11 +753,10 @@ class hitokiri(object):
 				self.mesaj(self.su[y].get_text() + "\nOlduğunu belirtin!")
 				return False
 
-		self.editor().get_buffer().begin_user_action()
-		self.editor().get_buffer().insert_at_cursor("{{dergi|sayı=" + self.su[1].get_text() +\
-											"|tarih="  + self.su[2].get_text() +  "|sayfano=" + \
-											self.su[3].get_text() +"|yazar=" + self.su[4].get_text() + "}}")
-		self.editor().get_buffer().end_user_action()
+		self.set_text("{{dergi|sayı=" + self.su[1].get_text() +\
+						"|tarih="  + self.su[2].get_text() + \
+						"|sayfano=" + self.su[3].get_text() +\
+						"|yazar=" + self.su[4].get_text() + "}}")
 
 		self.pencere.destroy()
 	
@@ -768,12 +767,15 @@ class hitokiri(object):
 				self.mesaj(self.grs[lb].get_text()+"\nBoş bırakılmamalı!")
 				return False
 
-		self.editor().get_buffer().begin_user_action()
-		self.editor().get_buffer().insert_at_cursor("{{yazılım|isim=" + self.grs[1].get_text() + "|ekran_görüntüsü=" +\
-								self.grs[2].get_text() + "|açıklama=" + self.grs[3].get_text() + "|geliştirici=" + self.grs[4].get_text() +\
-								"|depo=" + self.grs[7].get_text() + "|tür=" + self.grs[5].get_text() + "|lisans=" + \
-								self.grs[6].get_text() +" |web_sitesi=" + self.grs[8].get_text() + "}}")
-		self.editor().get_buffer().end_user_action()
+		self.set_text("{{yazılım|isim=" + self.grs[1].get_text() +\
+						"|ekran_görüntüsü=" + self.grs[2].get_text()  +\
+						"|açıklama=" + self.grs[3].get_text() +\
+						"|geliştirici=" + self.grs[4].get_text() +\
+						"|depo=" + self.grs[7].get_text() +\
+						"|tür=" + self.grs[5].get_text() + \
+						"|lisans=" + self.grs[6].get_text() +\
+						"|web_sitesi=" + self.grs[8].get_text() + "}}")
+		
 		self.pencere.destroy()
    
 	def  ekle(self, ek):
@@ -783,42 +785,30 @@ class hitokiri(object):
 				self.mesaj(self.giris[lb].get_text() +"\nBoş Bırakılmamalı!")
 				return False	
 
-		self.editor().get_buffer().begin_user_action()
-
-		self.editor().get_buffer().insert_at_cursor("{{firefoxeklentisi|isim=" +self.giris[1].get_text() +\
-					"|ekran_görüntüsü=" + self.giris[2].get_text() + "|açıklama=" + self.giris[3].get_text() +\
-					"|geliştirici=" + self.giris[4].get_text() +"||web_sitesi=" + self.giris[5].get_text() + "}} ")
+		self.set_text("{{firefoxeklentisi|isim=" +self.giris[1].get_text() +\
+					"|ekran_görüntüsü=" + self.giris[2].get_text() + \
+					"|açıklama=" + self.giris[3].get_text() +\
+					"|geliştirici=" + self.giris[4].get_text() +\
+					"||web_sitesi=" + self.giris[5].get_text() + "}} ")
 		
-		self.editor().get_buffer().end_user_action()
-
 		self.pencere.destroy()
 	
 	def anonim(self, sec):
-		buffer = self.editor().get_buffer()
-		bounds = buffer.get_selection_bounds()
-		
-		if bounds:
-			start, end = bounds
-			konu = self.editor().get_buffer().get_slice(start, end,1)
+		if konu:=self.get_konu():
 			renksec = gtk.ColorSelectionDialog("Bir renk seçin")
 			renksec.set_icon_from_file("../Simgeler/07-renk seç.png")
 			renksec.show()
 
 			if renksec.run() == gtk.ResponseType.OK:
-				self.editor().get_buffer().begin_user_action()
-				self.editor().get_buffer().delete(start, end)
 				renk = renksec.get_color_selection().get_current_color().to_floats()
 				# crazy stuff here needs to change rgb01 to rgb250
 				r, g, b = renk[0] * 255, renk[1] * 255,  renk[2] * 255
 #				print(r,g,b)
-				self.editor().get_buffer().insert_at_cursor('<span style="color:rgb(' + str(r)+", "+str(g)+", "+str(b)+');">' + konu + '</span>')
-				self.editor().get_buffer().end_user_action()
-
+				self.set_text('<span style="color:rgb(' + str(r)+", "+str(g)+", "+str(b)+');">' + konu + '</span>')
 				renksec.destroy()
     
 			else: renksec.destroy()
 
-		else: self.ileti.set_text("Seçili hiç bir metin yok !")
 	
 	def den(self, deneme):
 
@@ -833,25 +823,15 @@ class hitokiri(object):
 		self.pencere.destroy()
 
 	def sed(self,komut):		
-		buffer = self.editor().get_buffer()
-		bounds = buffer.get_selection_bounds()
-  
-		if bounds:
-			start, end = bounds
-			konu = self.editor().get_buffer().get_slice(start, end,None)
-			self.editor().get_buffer().begin_user_action()
+		if konu:=self.get_konu():
 
-			self.editor().get_buffer().delete(start, end)
 			dosya = open("/tmp/wiki-editor","w")
 			dosya.write(konu)
 			dosya.close()
 			os.system(komut)
 	
 			dosya = open("/tmp/wiki-editor","r")
-			self.editor().get_buffer().insert_at_cursor(dosya.read())
-			
-			self.editor().get_buffer().end_user_action()
-
+			self.set_text(dosya.read())
 			dosya.close()
 			os.system("rm -rf /tmp/wiki*")  	
 			return True
@@ -859,39 +839,45 @@ class hitokiri(object):
 			self.mesaj("Seçili Hiç Bir Metin Yok!")			
 			return None
 
-	def nooo(self, w, data=False):
-		if  w.get_label() ==  "Wiki Kodlarını Pasifleştir": self.sed(ar.no)		
-		elif w.get_label() ==  "Wiki Kodlarını Pasifleştirme": self.sed(ar.rno)	     
-  	
-	def madde(self, w, data=False):	
+	def sed_setup(self, style_=dict, widget=None):
+		for label in style_:
+			if label == widget.get_label():
+				self.sed(style_[label])
 
-		if w.get_label() == "Maddele": self.sed(ar.madde)
-		elif  w.get_label() == "Maddeleme": self.sed(ar.rmadde)
+	def nooo(self, w, data=False):
+		style_ = {"Wiki Kodlarını Pasifleştir":ar.no,"Boşlukları Kodlama":ar.rno}
+		self.sed_setup(style_,w)
+  
+	def madde(self, w, data=False):	
+		style_ = {"Maddele":ar.madde,"Maddeleme":ar.rmadde}
+		self.sed_setup(style_,w)
 	
 	def bosluk(self, w, data=False):
-		if  w.get_label() ==  "Boşlukları Kodla": self.sed(ar.bosluk)
-		elif w.get_label() ==  "Boşlukları Kodlama": self.sed(ar.rbosluk)
+		style_ = {"Boşlukları Kodla":ar.bosluk,"Boşlukları Kodlama":ar.rbosluk}
+		self.sed_setup(style_,w)
 
 	def set_tool(self,w,data=False):
-		if w.get_label() ==  "Sadece Simge": self.toolbar.set_style(gtk.ToolbarStyle.ICONS)
-		elif w.get_label() ==  "Sadece Metin": self.toolbar.set_style(gtk.ToolbarStyle.TEXT)
-		else: self.toolbar.set_style(gtk.ToolbarStyle.BOTH)
-  
-#		neye =  str(self.toolbar.get_style()).strip("><")
-#		for i in "_":
-#			neye=neye.replace(i, "")
-#		self.conf("/apps/wiki-editor/toolbar",  str(neye))	
-			
+		style_ = {"Simge":"ICONS","Metin":"TEXT","ve":"BOTH"}
+		for label in style_:
+			if label in w.get_label():
+				self.toolbar.set_style( getattr(gtk.ToolbarStyle, "%s" %(style_[label]) ) )
+
+	def deger(self, w,data=False):
+		style_ = {"Sola Hizala":"LEFT","Ortala":"CENTER","Sağa Hizala":"RIGHT"}
+		for label in style_:
+			if label in w.get_label():
+				self.editor().set_justification( getattr(gtk.Justification, "%s" %(style_[label]) ) )
+
 	def tam(self, w, data=False):
 
 		if self.full_screen == None: self.pen.fullscreen() ; self.full_screen = True
 		else: self.pen.unfullscreen() ; self.full_screen = None
 
-	def yeni(self,w=False): self.sek(False,False,0)	
-	def kurulum(self,  w, data=False): os.system('xdg-open http://wiki.ubuntu-tr.net/index.php/Acemiler_i%C3%A7in_Wiki&')
-	def katil(self,  w, data=False): ol.Uyeol().main()
+	def yeni(self,*args): self.sek(False,False,0)	
+	def kurulum(self,  *args): os.system('xdg-open http://wiki.ubuntu-tr.net/index.php/Acemiler_i%C3%A7in_Wiki&')
+	def katil(self,  *args ): ol.Uyeol().main()
 
-	def soru(self,  w, data=False):
+	def soru(self,*args):
 		i = -1
 		while True:
 			i += 1
@@ -916,18 +902,12 @@ class hitokiri(object):
 			else:
 				exit()
 
-	def deger(self, w,data=False):
-	#	print(w.get_label())
-		if w.get_label() ==  "Sola Hizala": self.editor().set_left_margin(20)
-		elif  w.get_label() == "Ortala": self.editor().set_left_margin(400)
-		elif  w.get_label() == "Sağa Hizala": self.editor().set_left_margin(800)
 
 	def kayit(self,w,data=False):
 
 		if  "Kaydedilmemiş" in self.yol: self.tasi(1,1)
 		else:
-			start, end = self.editor().get_buffer().get_bounds()
-			konu= self.editor().get_buffer().get_slice(start, end,w)
+			konu= self.get_konu(True)
 			try:
 		#		print(self.yol)
 				dosya = open( self.yol ,"w")
@@ -959,13 +939,19 @@ class hitokiri(object):
 		except Exception: 
 			self.hata(" Hata Kodu:5 \n\tHata Mesajı:"+ str(dosya) + "\n\tdosyası okunurken hata oluştu!\n\n\n ")
 			return False
-	#		self.editor().get_buffer().set_data('languages-manager', lm)
-	#		manager = self.editor().get_buffer().get_data('languages-manager')
- 
-		language = self.lm.guess_language(dosya)
-		self.editor().get_buffer().set_language(language) 
-		self.editor().get_buffer().set_undo_manager()
-		self.editor().get_buffer().set_modified(False)
-
-		self.label.set_text("language")
+		
 		das.close()
+
+		language = self.lm.guess_language(dosya)
+		try:
+			language = language.get_mime_types()[0]
+			language = re.sub(".*.-", "", language)
+			self.label.set_text(language)
+
+		except AttributeError:
+			self.label.set_text("Düz Metin")
+
+		buffer = self.editor().get_buffer()
+		buffer.set_language(language) 
+		buffer.set_undo_manager()
+		buffer.set_modified(False)

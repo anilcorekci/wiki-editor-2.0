@@ -20,11 +20,21 @@ TARGET_TYPE_URI_LIST = 80
 wiki_db = os.environ['HOME']+"/.wiki_editor.db"
 UI_INFO = ar.UI_INFO
 
+style_ = {
+	"Wiki Kodlarını Pasifleştir":ar.no,"Wiki Kodlarını Pasifleştirme":ar.rno,
+	"Maddele":ar.madde,"Maddeleme":ar.rmadde,
+	"Boşlukları Kodla":ar.bosluk,"Boşlukları Kodlama":ar.rbosluk,
+	}
+
+style_icon = {"Simge":"ICONS","Metin":"TEXT","ve":"BOTH"}
+
+style_editor = {"Sola Hizala":"LEFT","Ortala":"CENTER","Sağa Hizala":"RIGHT"}
+
 
 class hitokiri(object):
 	def get_main_menu(self, pencere):
 		uimanager = gtk.UIManager()
-		action_group = gtk.ActionGroup(name="my_actions" )
+		action_group = gtk.ActionGroup(name="my_actions")
 		action_group.add_actions(self.menu_items)
 
 		uimanager.add_ui_from_string(UI_INFO)
@@ -137,10 +147,10 @@ class hitokiri(object):
 		yol = text.split(":")[1]
 
 		if os.path.isfile(yol):
-			self.yol = text.split(":")[1]
+			self.yol = yol
 			return False
 		
-		self.yol = text.split(":")[1] + text.split(":")[2]
+		self.yol = yol + text.split(":")[2]
 
 
 	def editor(self):
@@ -840,20 +850,12 @@ class hitokiri(object):
 			return None
 
 	def sed_setup(self, widget, data=False):
-		style_ = {
-			"Wiki Kodlarını Pasifleştir":ar.no,"Wiki Kodlarını Pasifleştirme":ar.rno,
-			"Maddele":ar.madde,"Maddeleme":ar.rmadde,
-			"Boşlukları Kodla":ar.bosluk,"Boşlukları Kodlama":ar.rbosluk,
-			}
 
 		for label in style_:
 			if label == widget.get_label():
 				self.sed(style_[label])
 
-
 	def set_tool_edit(self,w,data=False):
-		style_icon = {"Simge":"ICONS","Metin":"TEXT","ve":"BOTH"}
-		style_editor = {"Sola Hizala":"LEFT","Ortala":"CENTER","Sağa Hizala":"RIGHT"}
 
 		for label, label_ed in zip(style_icon,style_editor):
 

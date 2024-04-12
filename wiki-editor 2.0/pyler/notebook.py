@@ -392,7 +392,7 @@ class hitokiri(object):
 		self.editor().set_border_window_size(gtk.TextWindowType.LEFT, 0)
 		buffer.set_modified(False)
 
-	def sablon(self,dosya,range_,format_):
+	def sablon(self,dosya,format_):
 		builder = gtk.Builder()        
 		builder.add_from_file(dosya)	
 		vbox = builder.get_object("vbox1")
@@ -400,7 +400,7 @@ class hitokiri(object):
 		self.pencere.set_modal(True)  
 		
 		dict_= {}
-		range_+=1
+		range_ = len(format_.split("{}"))  # number of entries
 		range_ = [ [1, range_], [range_, range_*2]]
 
 		for en, lb in zip(range(*range_[0]), range(*range_[1]) ):
@@ -413,7 +413,7 @@ class hitokiri(object):
 
 		self.pencere.show_all()	 
 
-	def set_en_label_text(self, dict_,range_,format_):
+	def set_en_label_text(self, dict_,range_, format_):
 		get_text = []
 		for x, y in zip(range(*range_[0]), range(*range_[1]) ):
 			if not dict_[x].get_text():
@@ -427,17 +427,16 @@ class hitokiri(object):
 	def yazilim(self, yazi):
 
 		self.sablon("../Glade/yazılım.glade", # glade file_path
-			8, # number of entry
 			"{{{{yazılım|isim='{}'|ekran_görüntüsü='{}'|açıklama='{}'\
 |geliştirici='{}'|tür='{}'|lisans='{}'|depo='{}'|web_sitesi='{}'}}}}") # text that will be formatted with entires
 	
 	def sudo(self, su):
-		self.sablon("../Glade/sudo.glade", 4,
+		self.sablon("../Glade/sudo.glade", 
 		"{{{{dergi|sayı={}|tarih={}|sayfano={}|yazar={} }}}}")
 	
 	
 	def eklenti(self, firefox):
-		self.sablon("../Glade/firefox.glade", 5, 
+		self.sablon("../Glade/firefox.glade", 
 		"{{{{firefoxeklentisi|isim={}|ekran_görüntüsü={}|açıklama={}\
 |geliştirici={} ||web_sitesi={} }}}}" )
 

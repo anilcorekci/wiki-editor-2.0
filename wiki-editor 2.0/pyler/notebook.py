@@ -942,9 +942,9 @@ class hitokiri(object):
 
 		language = self.lm.guess_language(dosya)
 		try:
-			language = language.get_mime_types()[0]
-			language = re.sub(".*.-", "", language)
-			self.label.set_text(language)
+			lm = language.get_mime_types()[0]
+			lm = re.sub(".*.-", "", lm)
+			self.label.set_text(lm)
 
 		except AttributeError:
 			self.label.set_text("Düz Metin")

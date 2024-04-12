@@ -392,45 +392,55 @@ class hitokiri(object):
 		self.editor().set_border_window_size(gtk.TextWindowType.LEFT, 0)
 		buffer.set_modified(False)
 
-	def sablon(self,dosya,connect):
+	def sablon(self,dosya,range_,format_):
 		builder = gtk.Builder()        
 		builder.add_from_file(dosya)	
 		vbox = builder.get_object("vbox1")
 		self.pencere = builder.get_object("window1")
 		self.pencere.set_modal(True)  
-		ekle = gtk.Button(" Tamam ")
-		ekle.connect("clicked", connect)
-		vbox.add(ekle)    	
-		self.pencere.show_all()	 
-		return builder
-	
-	def sudo(self, su):
-		build = self.sablon("../Glade/sudo.glade", self.SUDO) 
-		self.su = {}
-		for en, label in zip(range(1,5), range(5,9)):
-			self.su[en] =  build.get_object("entry"+str(en))
-			self.su[label] = build.get_object("label"+str(en))
+		
+		dict_= {}
+		for en, lb in zip(range(*range_[0]), range(*range_[1]) ):
+			dict_[en] =  builder.get_object("entry"+str(en)) 
+			dict_[lb] =  builder.get_object("label"+str(en)) 
 
+		ekle = gtk.Button(" Tamam ")
+		ekle.connect("clicked", lambda x: self.set_en_label_text(dict_,range_,format_))
+		vbox.add(ekle)
+
+		self.pencere.show_all()	 
+
+	def set_en_label_text(self, dict_,range_,format_):
+		get_text = []
+		for x, y in zip(range(*range_[0]), range(*range_[1]) ):
+			if not dict_[x].get_text():
+				self.mesaj(dict_[y].get_text() + "\nOlduğunu belirtin!")
+				return False
+			get_text.append(dict_[x].get_text())
+
+		self.set_text(format_.format(*get_text), True)
+		self.pencere.destroy()
 	
 	def yazilim(self, yazi):
-		build = self.sablon("../Glade/yazılım.glade" , self.yaz)
 
-		self.grs = {}
-		for en, lb in zip(range(1,9), range(9,18) ):
-			self.grs[en] =  build.get_object("entry"+str(en)) 
-			self.grs[lb] =  build.get_object("label"+str(en)) 
-
+		self.sablon("../Glade/yazılım.glade",
+			[ [1,9],[9,18] ],
+			"{{{{yazılım|isim='{}'|ekran_görüntüsü='{}'|açıklama='{}'\
+|geliştirici='{}'|tür='{}'|lisans='{}'|depo='{}'|web_sitesi='{}'}}}}")
+	
+	def sudo(self, su):
+		self.sablon("../Glade/sudo.glade",
+			[ [1,5], [5,9]],\
+			"{{{{dergi|sayı={}|tarih={}|sayfano={}|yazar={} }}}}")
 	
 	
 	def eklenti(self, firefox):
-		build = self.sablon("../Glade/firefox.glade" , self.ekle)
+		self.sablon("../Glade/firefox.glade", 
+			[ [1,6],[6,12]],
+			"{{{{firefoxeklentisi|isim={}|ekran_görüntüsü={}|açıklama={}\
+|geliştirici={} ||web_sitesi={} }}}}" )
 
-		self.giris = {}
-		for en, lb in zip( range(1,6), range(6,12) ):
-			self.giris[en] =  build.get_object("entry"+str(en)) 
-			self.giris[lb] =  build.get_object("label"+str(en)) 
 
-		 
 	def kategori(self,kategori):		
 		self.pencere = gtk.Window()
 		self.pencere.set_size_request(400,-1)
@@ -718,13 +728,16 @@ class hitokiri(object):
 		else:
 			self.dialog.destroy()	
 
-	def set_text(self, text):
-
+	def set_text(self, text, insert):
+			
 		buffer = self.editor().get_buffer()
-		start, end = buffer.get_selection_bounds()
 		buffer.begin_user_action()
-		buffer.delete(start, end)
-		buffer.insert_at_cursor(text)
+		if insert:
+			buffer.insert_at_cursor(text)
+		else:
+			start, end = buffer.get_selection_bounds()
+			buffer.delete(start, end)
+			buffer.insert_at_cursor(text)
 		buffer.end_user_action()
 
 	def secim(self, par, ca ):
@@ -756,52 +769,7 @@ class hitokiri(object):
 			self.ileti.set_text("Seçili hiç bir metin yok !")
 			return False
 	
-	def SUDO(self, SUDO):
 
-		for x, y in zip(range(1,5), range(5,9)):
-			if not self.su[x].get_text():
-				self.mesaj(self.su[y].get_text() + "\nOlduğunu belirtin!")
-				return False
-
-		self.set_text("{{dergi|sayı=" + self.su[1].get_text() +\
-						"|tarih="  + self.su[2].get_text() + \
-						"|sayfano=" + self.su[3].get_text() +\
-						"|yazar=" + self.su[4].get_text() + "}}")
-
-		self.pencere.destroy()
-	
-	def yaz(self, ya):
-		
-		for en, lb in zip(range(1,9), range(9,18) ):
-			if not self.grs[en].get_text(): 
-				self.mesaj(self.grs[lb].get_text()+"\nBoş bırakılmamalı!")
-				return False
-
-		self.set_text("{{yazılım|isim=" + self.grs[1].get_text() +\
-						"|ekran_görüntüsü=" + self.grs[2].get_text()  +\
-						"|açıklama=" + self.grs[3].get_text() +\
-						"|geliştirici=" + self.grs[4].get_text() +\
-						"|depo=" + self.grs[7].get_text() +\
-						"|tür=" + self.grs[5].get_text() + \
-						"|lisans=" + self.grs[6].get_text() +\
-						"|web_sitesi=" + self.grs[8].get_text() + "}}")
-		
-		self.pencere.destroy()
-   
-	def  ekle(self, ek):
-	
-		for en, lb in zip(range(1,6), range(6,12)):
-			if not self.giris[en].get_text():
-				self.mesaj(self.giris[lb].get_text() +"\nBoş Bırakılmamalı!")
-				return False	
-
-		self.set_text("{{firefoxeklentisi|isim=" +self.giris[1].get_text() +\
-					"|ekran_görüntüsü=" + self.giris[2].get_text() + \
-					"|açıklama=" + self.giris[3].get_text() +\
-					"|geliştirici=" + self.giris[4].get_text() +\
-					"||web_sitesi=" + self.giris[5].get_text() + "}} ")
-		
-		self.pencere.destroy()
 	
 	def anonim(self, sec):
 		if konu:=self.get_konu():

@@ -59,23 +59,23 @@ class hitokiri(object):
 			( "Geri Al", None,"Geri Al",  "<control>Z", None, self.geri ),          
 			( "Tekrar Yap", None,"Tekrar Yap", "<shift><control>Z", None, self.rgeri),
 			( "Hizalama", None,"Hizalama" ),   
-			( "Sola Hizala",None,"Sola Hizala",None, None, self.deger),
-			( "Ortala",None ,"Ortala",None, None, self.deger),                  
-			( "Sağa Hizala",None ,"Sağa Hizala",None, None, self.deger),      
+			( "Sola Hizala",None,"Sola Hizala",None, None, self.set_tool_edit),
+			( "Ortala",None ,"Ortala",None, None, self.set_tool_edit),                  
+			( "Sağa Hizala",None ,"Sağa Hizala",None, None, self.set_tool_edit),      
 			( "Tercihler", None, "Tercihler",  "<control>P", None, self.tercihler),      
 			( "Bul", None, "Bul", "<control>F",None, self.arama),     
 			( "Görünüm", gtk.Action(name="Görünüm"), "Görünüm" ),
-			( "Sadece Simge",   None,"Sadece Simge",  None, None, self.set_tool),
-			( "Sadece Metin",  None, "Sadece Metin", None, None, self.set_tool),
-			( "Metin ve Simge", None,"Metin ve Simge", None, None, self.set_tool),             
+			( "Sadece Simge",   None,"Sadece Simge",  None, None, self.set_tool_edit),
+			( "Sadece Metin",  None, "Sadece Metin", None, None, self.set_tool_edit),
+			( "Metin ve Simge", None,"Metin ve Simge", None, None, self.set_tool_edit),             
 			( "Tam Ekran",  None, "Tam Ekran", "F11", None, self.tam ),     
 			( "Araçlar",gtk.Action(name="Araçlar"), "Araçlar"),            
-			( "Boşlukları Kodla", None,"Boşlukları Kodla", "<control>E",None, self.bosluk ),
-			( "Boşlukları Kodlama", None, "Boşlukları Kodlama", "<control><shift>E", None, self.bosluk),
-			( "Wiki Kodlarını Pasifleştir", None,"Wiki Kodlarını Pasifleştir",  "<control>W",None, self.nooo ),	    
-			( "Wiki Kodlarını Pasifleştirme",None, "Wiki Kodlarını Pasifleştirme","<control><shift>W",None, self.nooo ),
-			( "Maddele", None, "Maddele",  "<control><shift>M", None, self.madde ),
-			( "Maddeleme", None, "Maddeleme", "<control><shift>N", None, self.madde ),	   			
+			( "Boşlukları Kodla", None,"Boşlukları Kodla", "<control>E",None, self.sed_setup ),
+			( "Boşlukları Kodlama", None, "Boşlukları Kodlama", "<control><shift>E", None, self.sed_setup),
+			( "Wiki Kodlarını Pasifleştir", None,"Wiki Kodlarını Pasifleştir",  "<control>W",None, self.sed_setup ),	    
+			( "Wiki Kodlarını Pasifleştirme",None, "Wiki Kodlarını Pasifleştirme","<control><shift>W",None, self.sed_setup ),
+			( "Maddele", None, "Maddele",  "<control><shift>M", None, self.sed_setup ),
+			( "Maddeleme", None, "Maddeleme", "<control><shift>N", None, self.sed_setup ),	   			
 			( "Yardım", gtk.Action(name="Yardım"),"Yardım" ),
 			( "İçindekiler", None, "İçindekiler" , "F1", None, self.kurulum),
 			( "Bize Katılın", None, "Bize Katılın", "F2", None, self.katil ),	    
@@ -839,34 +839,30 @@ class hitokiri(object):
 			self.mesaj("Seçili Hiç Bir Metin Yok!")			
 			return None
 
-	def sed_setup(self, style_=dict, widget=None):
+	def sed_setup(self, widget, data=False):
+		style_ = {
+			"Wiki Kodlarını Pasifleştir":ar.no,"Wiki Kodlarını Pasifleştirme":ar.rno,
+			"Maddele":ar.madde,"Maddeleme":ar.rmadde,
+			"Boşlukları Kodla":ar.bosluk,"Boşlukları Kodlama":ar.rbosluk,
+			}
+
 		for label in style_:
 			if label == widget.get_label():
 				self.sed(style_[label])
 
-	def nooo(self, w, data=False):
-		style_ = {"Wiki Kodlarını Pasifleştir":ar.no,"Boşlukları Kodlama":ar.rno}
-		self.sed_setup(style_,w)
-  
-	def madde(self, w, data=False):	
-		style_ = {"Maddele":ar.madde,"Maddeleme":ar.rmadde}
-		self.sed_setup(style_,w)
-	
-	def bosluk(self, w, data=False):
-		style_ = {"Boşlukları Kodla":ar.bosluk,"Boşlukları Kodlama":ar.rbosluk}
-		self.sed_setup(style_,w)
 
-	def set_tool(self,w,data=False):
-		style_ = {"Simge":"ICONS","Metin":"TEXT","ve":"BOTH"}
-		for label in style_:
-			if label in w.get_label():
-				self.toolbar.set_style( getattr(gtk.ToolbarStyle, "%s" %(style_[label]) ) )
+	def set_tool_edit(self,w,data=False):
+		style_icon = {"Simge":"ICONS","Metin":"TEXT","ve":"BOTH"}
+		style_editor = {"Sola Hizala":"LEFT","Ortala":"CENTER","Sağa Hizala":"RIGHT"}
 
-	def deger(self, w,data=False):
-		style_ = {"Sola Hizala":"LEFT","Ortala":"CENTER","Sağa Hizala":"RIGHT"}
-		for label in style_:
+		for label, label_ed in zip(style_icon,style_editor):
+
 			if label in w.get_label():
-				self.editor().set_justification( getattr(gtk.Justification, "%s" %(style_[label]) ) )
+				self.toolbar.set_style( getattr(gtk.ToolbarStyle, "%s" %(style_icon[label]) ) )
+
+			elif label_ed in w.get_label():
+				self.editor().set_justification( getattr(gtk.Justification, "%s" %(style_editor[label_ed]) ) )
+
 
 	def tam(self, w, data=False):
 

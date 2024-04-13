@@ -19,6 +19,7 @@ import uyeol as ol
 TARGET_TYPE_URI_LIST = 80
 wiki_db = os.environ['HOME']+"/.wiki_editor.db"
 UI_INFO = ar.UI_INFO
+VISIT_PAGE = 'http://wiki.ubuntu-tr.net/index.php/Acemiler_i%C3%A7in_Wiki&'
 
 style_ = {
 	"Wiki Kodlarını Pasifleştir":ar.no,"Wiki Kodlarını Pasifleştirme":ar.rno,
@@ -46,7 +47,6 @@ class hitokiri(object):
 		return uimanager.get_widget("/MenuBar")
 
 	def __init__(self):
-		self.i = -1
 		self.notebook = gtk.Notebook()
 		self.notebook.set_scrollable(True)
 		self.notebook.connect("switch-page", self.switch)
@@ -136,6 +136,7 @@ class hitokiri(object):
 		self.pen = pencere 
 		self.full_screen = None
 		self.lm = edit.LanguageManager()
+		self.showy_widgets_ = [ self.hbox, self.toolbar,self.menubar ]  
 
 	def switch(self, tab=False, widget=False, tab_N=False):
 	#	print(widget, tab_N)
@@ -270,34 +271,35 @@ class hitokiri(object):
 		self.editor().get_buffer().set_language(language) 	
 	#	self.editor().set_buffer(self.editor().get_buffer())
 		
-	def sek(self,me,baslik,yol):
-		self.i +=1
-		i = str(self.i+1)
+	def yeni(self,me,baslik,yol):
+		page_number = str( self.notebook.get_current_page() +2 )
+
 		if not baslik and not yol:
-			baslik = "Kaydedilmemiş Belge: " + i
-			yol =  "Kaydedilmemiş Belge: "  + i 
+			baslik = "Kaydedilmemiş Belge: %s" %( page_number)
+			yol =  baslik
 		else:	
 			grep=re.findall(".*?../", baslik)
 			for i in grep:
 				baslik=baslik.replace(i, "")
 
 		merhaba = self.note_label_box( '../Simgeler/kapat.svg',baslik,yol)
-		buf = wiki.wikieditor()
-		self.notebook.insert_page( buf,merhaba,1)
+		buf = wiki.wikieditor()		
+
+		self.notebook.append_page( buf,merhaba)
 		self.notebook.show_all()
 		self.notebook.next_page()
+
 		self.ayarlar()
 
 	def kapat(self,w,yol,label_text):
-     
-		if self.i < 0: return False
-
-		else: self.i-=1
-
+     		
+		i=-1
 		while self.notebook.get_n_pages():
-
-			self.notebook.set_current_page(self.tab_N)
-
+			
+			i+=1
+			self.notebook.set_current_page(i)
+			if label_text != self.notebook.get_tab_label(self.notebook.get_nth_page(i)).get_children()[1].get_text():
+				continue
 			no = True
 
 			if self.editor().get_buffer().get_modified():
@@ -310,26 +312,28 @@ class hitokiri(object):
 				dialog.show()
 				ne = dialog.run() 
 				if ne ==  gtk.ResponseType.OK:
-					self.kayit(self.name,1)
+					self.kayit(self.name,1) 
 					no = None
 				elif ne ==  gtk.ResponseType.CANCEL:
 					no = None
 					dialog.destroy()
-					self.i+=1
 					break
 				dialog.destroy()
 			if no:
-				self.notebook.remove_page(self.tab_N)	
+				self.notebook.remove_page(i)
+				self.notebook.next_page()
 				break
 
 		if self.notebook.get_n_pages() == 0:
-			self.hbox.hide(),self.toolbar.hide(),self.menubar.hide(),self.hide.show()
-			self.notebook.remove_page(0)	
+			self.hide.show(); 
+			for hide in self.showy_widgets_: hide.hide() 			
+
 
 	def note_label_box(self, resim_filename, label_text,yol):
 
 		if self.notebook.get_n_pages()  == 0:
-			self.hbox.show(),self.toolbar.show(),self.menubar.show(), self.hide.hide()
+			self.hide.hide(); 
+			for show in self.showy_widgets_: show.show() 
 
 		box1 = gtk.HBox()
 		image = gtk.Image()
@@ -501,7 +505,7 @@ class hitokiri(object):
 
 		self.notebook.show()	
 		if self.notebook.get_n_pages() < 1:
-			self.sek(1,False,False)
+			self.yeni(1,False,False)
 			buffer = self.editor().get_buffer()
 			buffer.set_text(ar.lisans+"\n"+ar.ksayol)
 			buffer.set_undo_manager()
@@ -614,7 +618,7 @@ class hitokiri(object):
 	
 		if response == gtk.ResponseType.OK:
 			bilgi = dialog.get_filename()
-			self.sek(1,bilgi,bilgi)
+			self.yeni(1,bilgi,bilgi)
 			self.open(bilgi)
 			dialog.destroy()	 
 	
@@ -716,19 +720,19 @@ class hitokiri(object):
 				hata = bilgi +"\nDosyası Kayıt Edilemedi..\nHata Kodu:-1\nHata Mesajı:"+str(mesaj)
 				self.mesaj(hata)
 				self.dialog.destroy()	
-			else:	
+			else:
 				dosya.write(konu)
 				dosya.close()
 				self.dialog.destroy()	  
 				page = self.notebook.get_current_page()
 				self.notebook.remove_page(page)	
 
-				self.sek(1,bilgi,bilgi)
+				self.yeni(1,bilgi,bilgi)
 				self.open(bilgi)
 		else:
 			self.dialog.destroy()	
 
-	def set_text(self, text, insert):
+	def set_text(self, text, insert=None):
 			
 		buffer = self.editor().get_buffer()
 		buffer.begin_user_action()
@@ -839,8 +843,7 @@ class hitokiri(object):
 		if self.full_screen == None: self.pen.fullscreen() ; self.full_screen = True
 		else: self.pen.unfullscreen() ; self.full_screen = None
 
-	def yeni(self,*args): self.sek(False,False,0)	
-	def kurulum(self,  *args): os.system('xdg-open http://wiki.ubuntu-tr.net/index.php/Acemiler_i%C3%A7in_Wiki&')
+	def kurulum(self,  *args): os.system('xdg-open %s' %(VISIT_PAGE))
 	def katil(self,  *args ): ol.Uyeol().main()
 
 	def soru(self,*args):
@@ -848,25 +851,21 @@ class hitokiri(object):
 		while True:
 			i += 1
 			self.notebook.set_current_page(i)
-			page = self.notebook.get_current_page()
-			if  self.notebook.get_n_pages() < i:
-				exit()
+
+			if  self.notebook.get_n_pages() < i: exit(0)
+
 			elif self.editor():
+
 				if self.editor().get_buffer().get_modified():
 					soru = gtk.MessageDialog(type=gtk.MessageType.QUESTION , buttons=gtk.ButtonsType.YES_NO)
-					soru.set_markup("<b>Kayıt Edilmemiş Değişiklikler Var </b>\n<i>Yine de Programdan çıkmak istediğinize emin misiniz?</i>")
-					if soru.run() == gtk.ResponseType.YES:
-						soru.destroy()	
-						exit()
-					else:
-						soru.destroy()
-						gtk.main()
-				elif self.notebook.get_n_pages() == 1:			
-						exit()
-				else:
-					pass					
-			else:
-				exit()
+					soru.set_markup("<b>Kayıt Edilmemiş Değişiklikler Var </b>"+\
+					 "\n<i>Yine de Programdan çıkmak istediğinize emin misiniz?</i>")
+
+					if soru.run() == gtk.ResponseType.YES: soru.destroy(); exit(1)
+
+					else: soru.destroy(); gtk.main(); break
+
+			else: exit(0)
 
 
 	def kayit(self,w,data=False):

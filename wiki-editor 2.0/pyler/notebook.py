@@ -220,7 +220,7 @@ class hitokiri(object):
 		uye = gtk.Image() 
 		pix = GdkPixbuf.Pixbuf.new_from_file_at_size("üye.png",28,28)	
 		uye.set_from_pixbuf(pix)	
-		self.toolitem("Yeni","Yeni Bir Belge Oluştur", yeni, self.yeni) 
+		self.toolitem("Yeni","Yeni Bir Belge Oluştur", yeni, lambda x: self.yeni(0,False,False) ) 
 		self.toolitem( "Aç",   "Bir Dosya Aç",ac,self.ac )     
 		self.toolitem( "Tercihler",   "Wiki Editor Tercihleri ",ci,self.tercihler )      
 		self.toolitem( "Üye Ol",   "Henüz Wikiye Üye Değil Misin ?\nO Zaman Bu Tam Senin İçin ..",uye,self.katil )      

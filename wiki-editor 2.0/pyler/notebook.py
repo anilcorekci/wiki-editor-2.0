@@ -59,7 +59,7 @@ class hitokiri(object):
 		
 		self.menu_items = [
 			("Dosya", None, "Dosya"),
-			( "Yeni",  None,"Yeni",   "<control>N", None, self.yeni),
+			( "Yeni",  None,"Yeni",   "<control>N", None, lambda x: self.yeni(0,False,False) ),
 			( "Aç",    None,"Aç",  "<control>O", None, self.ac ),     
 			( "Kaydet",  None, "Kaydet","<control>S", None, self.kayit),
 			( "Farklı Kaydet",  None, "Farklı Kaydet","<shift><control>S", None, self.tasi ),

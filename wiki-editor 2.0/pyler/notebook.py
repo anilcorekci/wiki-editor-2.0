@@ -31,6 +31,7 @@ style_icon = {"Simge":"ICONS","Metin":"TEXT","ve":"BOTH"}
 
 style_editor = {"Sola Hizala":"LEFT","Ortala":"CENTER","Sağa Hizala":"RIGHT"}
 
+UNDEFINED_LIST = {}
 
 class hitokiri(object):
 	def get_main_menu(self, pencere):
@@ -59,7 +60,7 @@ class hitokiri(object):
 		
 		self.menu_items = [
 			("Dosya", None, "Dosya"),
-			( "Yeni",  None,"Yeni",   "<control>N", None, lambda x: self.yeni(0,False,False) ),
+			( "Yeni",  None,"Yeni",   "<control>N", None, lambda x: self.yeni(0,False,False)),
 			( "Aç",    None,"Aç",  "<control>O", None, self.ac ),     
 			( "Kaydet",  None, "Kaydet","<control>S", None, self.kayit),
 			( "Farklı Kaydet",  None, "Farklı Kaydet","<shift><control>S", None, self.tasi ),
@@ -220,7 +221,7 @@ class hitokiri(object):
 		uye = gtk.Image() 
 		pix = GdkPixbuf.Pixbuf.new_from_file_at_size("üye.png",28,28)	
 		uye.set_from_pixbuf(pix)	
-		self.toolitem("Yeni","Yeni Bir Belge Oluştur", yeni, lambda x: self.yeni(0,False,False) ) 
+		self.toolitem("Yeni","Yeni Bir Belge Oluştur", yeni,lambda x: self.yeni(0,False,False)) 
 		self.toolitem( "Aç",   "Bir Dosya Aç",ac,self.ac )     
 		self.toolitem( "Tercihler",   "Wiki Editor Tercihleri ",ci,self.tercihler )      
 		self.toolitem( "Üye Ol",   "Henüz Wikiye Üye Değil Misin ?\nO Zaman Bu Tam Senin İçin ..",uye,self.katil )      
@@ -277,6 +278,15 @@ class hitokiri(object):
 		if not baslik and not yol:
 			baslik = "Kaydedilmemiş Belge: %s" %( page_number)
 			yol =  baslik
+			# IF UNDEFINED NAME EXIST IN NOTEBOOK...
+			if yol in [ UNDEFINED_LIST[n] for n in UNDEFINED_LIST]:
+				#DEFINE NEW UNDEFINED AS +1 FROM THE CURRENT MAX NUMBER IN THE LIST
+				page_number = max([ UNDEFINED_LIST[n] for n in UNDEFINED_LIST]).split(":")[1] 
+				page_number = int(page_number)+1
+				baslik = "Kaydedilmemiş Belge: %s" %( page_number)
+
+			UNDEFINED_LIST[int(page_number)] = baslik
+
 		else:	
 			grep=re.findall(".*?../", baslik)
 			for i in grep:
@@ -291,38 +301,64 @@ class hitokiri(object):
 
 		self.ayarlar()
 
+
 	def kapat(self,w,yol,label_text):
      		
 		i=-1
+		
 		while self.notebook.get_n_pages():
 			
 			i+=1
 			self.notebook.set_current_page(i)
-			if label_text != self.notebook.get_tab_label(self.notebook.get_nth_page(i)).get_children()[1].get_text():
-				continue
-			no = True
+			
+			get_n_widget = self.notebook.get_nth_page(i) # return wiki_editor
+			get_n_tab_label = self.notebook.get_tab_label(get_n_widget) # return box
+			get_n_info = get_n_tab_label.get_children()[1].get_text() # return box child list_ #image#label/button
+
+
+			if label_text != get_n_info: continue
+
+			global UNDEFINED_LIST
+			# if get_n_info in UNDEFINED LIST
+			if get_n_info in [ UNDEFINED_LIST[n] for n in UNDEFINED_LIST]:
+			#	print(get_n_info)
+			#	UNDEFINED_LIST.pop(i+1)
+				#REMOVE get_n_info from UNDEFINED, REDUCE -1 each given index
+				UNDEFINED_LIST = {key-1: val for key, val in UNDEFINED_LIST.items() if key != i+1 }
+				# REDEFINE index info from 1 to N large from UNDEFINED INFO
+				UNDEFINED_LIST = {key: UNDEFINED_LIST[val] for key, val in zip(range(1,len(UNDEFINED_LIST)+1),UNDEFINED_LIST ) }
+			#	print(UNDEFINED_LIST)
+
+			response_ = None 
 
 			if self.editor().get_buffer().get_modified():
 				dialog = gtk.MessageDialog(type=gtk.MessageType.WARNING)
 				dialog.add_button("Kaydetmeden Kapat",gtk.ResponseType.NO)
 				dialog.add_button("İptal",gtk.ResponseType.CANCEL)
 				dialog.add_button("Kaydet",gtk.ResponseType.OK)
-				dialog.set_markup("<b>Kapatmadan önce <tt>'"+ label_text +"'</tt> \nbelgesinde yaptığınız değişiklikleri kaydetmek ister misiniz?"+\
-        							"</b>\n\n<i>Kaydetmediğiniz takdirde, yaptığınız son değişiklikler kaybolacak.</i>")
+
+				dialog.set_markup("<b>Kapatmadan önce <tt>'"+ label_text + \
+					"'</tt> \nbelgesinde yaptığınız değişiklikleri kaydetmek ister misiniz?"+\
+        			"</b>\n\n<i>Kaydetmediğiniz takdirde, yaptığınız son değişiklikler kaybolacak.</i>")
+				
 				dialog.show()
-				ne = dialog.run() 
-				if ne ==  gtk.ResponseType.OK:
-					self.kayit(self.name,1) 
-					no = None
-				elif ne ==  gtk.ResponseType.CANCEL:
-					no = None
-					dialog.destroy()
-					break
-				dialog.destroy()
-			if no:
-				self.notebook.remove_page(i)
-				self.notebook.next_page()
+				response_ = dialog.run() 
+				
+				if response_ ==  gtk.ResponseType.OK: 
+					self.kayit(self.name,1);dialog.destroy(); break
+
+				elif response_ ==  gtk.ResponseType.CANCEL: dialog.destroy(); break
+
+				self.notebook.remove_page(i); 
+				
+
+				dialog.destroy() 
 				break
+			else:
+				self.notebook.remove_page(i)
+				break
+
+
 
 		if self.notebook.get_n_pages() == 0:
 			self.hide.show(); 
@@ -730,7 +766,7 @@ class hitokiri(object):
 				self.yeni(1,bilgi,bilgi)
 				self.open(bilgi)
 		else:
-			self.dialog.destroy()	
+			self.dialog.destroy()
 
 	def set_text(self, text, insert=None):
 			

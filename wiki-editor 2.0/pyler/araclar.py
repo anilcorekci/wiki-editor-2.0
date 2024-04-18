@@ -7,13 +7,15 @@ from gi.repository import Gdk as gdk
 from gi.repository import GdkPixbuf
 import subprocess as sp_
 
+TMP_FILE = "/tmp/wiki-editor"
+
 ###Dosya Tipi Seçenekleri############################
 langs = {"Düz Metin":"text/plain",
 	    "C":"text/x-csrc",
 	    "Css":"text/css",
 	    ".desktop":"application/x-desktop",
 	    "Html":"text/html", 
-	    "Glade":"application/x-glade",	    
+	    "Glade":"application/x-glade",
 	    "Python":"text/x-python",
 	    "Java":"text/x-java",
 	    "PHP":"application/x-php",
@@ -33,22 +35,54 @@ def resim(yol):
 
 descriptions = {
 "Seçilen metin için bold yazı":["'''" ,"'''"],
+
 "Seçilen metin için italik yazı":  ["''" ,"''"] ,
+
 "Seçilen Metin için başlık \n Alt başlık oluşturmak için işlemi tekrarlayın.":  ["==" ,"=="],
+
 "Seçilen Metin için Wiki İç Bağlantısı.":  ["[[" ,"]]"],
-"Yazınız için bir renk seçin": "anonim",
+
+"Yazınız için bir renk seçin": "color_select",
+
 "Kırmızı renkte yazmak için":["{{kırmızı|" ,"}} "],
+
 "Mavi renkte yazmak için" : ["{{mavi|" ,"}}  "] ,
+
 "Bir resim seçin ve butona tıklayınn resim şablonu": ["[[Dosya:" ,"]]<br>"],
+
 "Dış bağlantı için wiki şablonu" : ["[" ,"  adres açıklaması]"] ,
+
 "Wiki harici nowiki metin gereksinimi?" : ["<nowiki>" ,"</nowiki>"],
+
 "Komutlar için bir kod şablonu": ["{{kod||<nowiki>" ," </nowiki>}} <br>"],
+
 "Komutlar için uçbirim şablonu" :["{{uçbirim|\n <nowiki>" ,"</nowiki>}}"] ,
+
 "Dosya içerikleri  için wiki şablonu":  ["{{dosya|nerde bu dosya|\n" ,"}}"], 
+
 "Yazının Hangi sürüm için olduğunu seçin": ["{{sürüm|" ," }}"] ,
-"SUDO alıntıları için bir  şablon": "sudo",
-"Mozilla Firefox Eklentileri için bir şablon.": "eklenti",
-"Yazılımlar için bir şablon.": "yazilim",
+
+"SUDO alıntıları için bir  şablon":{
+# each given glade file must contain label and entry
+# each entry and label must be named and enumerated aligned with 1,2,3,4,5.. etc..
+# widgets must be in a  window named window1 and box named vbox1
+# format text {} refers to each given entry and its corresponding label..
+
+	"../Glade/sudo.glade": "{{{{dergi|sayı={}|tarih={}|sayfano={}|yazar={} }}}}"
+	},
+
+"Mozilla Firefox Eklentileri için bir şablon.":{
+	"../Glade/firefox.glade": \
+	"{{{{firefoxeklentisi|isim={}|ekran_görüntüsü={}|açıklama={}\
+|geliştirici={} ||web_sitesi={} }}}}"
+},
+
+"Yazılımlar için bir şablon.": {
+	"../Glade/yazılım.glade": \
+	"{{{{yazılım|isim='{}'|ekran_görüntüsü='{}'|açıklama='{}'\
+|geliştirici='{}'|tür='{}'|lisans='{}'|depo='{}'|web_sitesi='{}'}}}}"
+},
+
 "Yazınız için bir kategori seçin..": "kategori",
 }
 
@@ -68,6 +102,8 @@ pix = GdkPixbuf.Pixbuf.new_from_file_at_size("wiki-editor.png",28,28)
 hak.set_from_pixbuf(pix)	
 ###Hakkında####################################################
 program="Wiki Editor "
+#
+logo ="wiki-editor.png"
 #
 versiyon="2.0"
 #
@@ -121,58 +157,55 @@ kategoriler= {
 }
 
 ####################################################
-no = """sed -i -e 's_>_<nowiki>></nowiki>_g' /tmp/wiki-editor		
-sed -i -e 's_#_<nowiki>#</nowiki>_g' /tmp/wiki-editor
-sed -i -e 's_=_<nowiki>=</nowiki>_g' /tmp/wiki-editor
-sed -i -e 's_*_<nowiki>*</nowiki>_g' /tmp/wiki-editor
-sed -i -e 's_}_<nowiki>}</nowiki>_g' /tmp/wiki-editor
-sed -i -e 's_{_<nowiki>{</nowiki>_g' /tmp/wiki-editor
-sed -i -e 's_|_<nowiki>|</nowiki>_g' /tmp/wiki-editor
-sed -i -e 's_\[_<nowiki>[</nowiki>_g' /tmp/wiki-editor
-sed -i -e 's_]_<nowiki>]</nowiki>_g' /tmp/wiki-editor
-sed -i -e 's_~_<nowiki>~</nowiki>_g' /tmp/wiki-editor"""
+no = """sed -i -e 's_>_<nowiki>></nowiki>_g' {}	
+sed -i -e 's_#_<nowiki>#</nowiki>_g' {}	
+sed -i -e 's_=_<nowiki>=</nowiki>_g' {}	
+sed -i -e 's_*_<nowiki>*</nowiki>_g' {}	
+sed -i -e 's_}}_<nowiki>}}</nowiki>_g' {}	
+sed -i -e 's_{{_<nowiki>{{</nowiki>_g' {}	
+sed -i -e 's_|_<nowiki>|</nowiki>_g' {}	
+sed -i -e 's_\[_<nowiki>[</nowiki>_g' {}	
+sed -i -e 's_]_<nowiki>]</nowiki>_g' {}	
+sed -i -e 's_~_<nowiki>~</nowiki>_g' {}	""".format(*[TMP_FILE]*10)
 ####################################################
-rno = """sed -i -e 's_<nowiki>__g' /tmp/wiki-editor		
-sed -i -e 's_</nowiki>__g' /tmp/wiki-editor"""
+rno = """sed -i -e 's_<nowiki>__g' {}	
+sed -i -e 's_</nowiki>__g' {}""".format(*[TMP_FILE]*2)
 ####################################################
-bosluk = """sed -i -e 's_ _\&nbsp;_g' /tmp/wiki-editor ;
-sed -i -e 's_	_\&nbsp;\&nbsp;\&nbsp;\&nbsp;_g' /tmp/wiki-editor ;
-sed -i -e 's_	__g' /tmp/wiki-editor ;
-a=`sed "s/$/<br>/" /tmp/wiki-editor > /tmp/wiki`
-cat /tmp/wiki > /tmp/wiki-editor """
+bosluk = """sed -i -e 's_ _\&nbsp;_g' {};
+sed -i -e 's_	_\&nbsp;\&nbsp;\&nbsp;\&nbsp;_g' {} ;
+sed -i -e 's_	__g' {};
+a=`sed "s/$/<br>/" {} > /tmp/wiki`
+cat /tmp/wiki > {}
+rm -rf /tmp/wiki """.format(*[TMP_FILE]*5)
 ####################################################
-rbosluk = """sed -i -e 's_\&nbsp;_ _g' /tmp/wiki-editor;
-sed -i -e 's_<br>__g' /tmp/wiki-editor"""
+rbosluk = """sed -i -e 's_\&nbsp;_ _g' {};
+sed -i -e 's_<br>__g' {}""".format(*[TMP_FILE]*2)
 ####################################################
-madde = """a=`sed 's/^/*/' /tmp/wiki-editor|tee /tmp/wiki`
-echo "$a"  > /tmp/wiki-editor
-sed -i -e 's_\&_\&#38;_g' /tmp/wiki
-sed -i -e 's_<_\&#60;_g' /tmp/wiki
-sed -i -e 's_}_\&#125;_g' /tmp/wiki
-sed -i -e 's_{_\&#123;_g' /tmp/wiki
-b=`sed "s/$/\<\/li\>/" /tmp/wiki`
-echo  "<body xmlns='http://www.w3.org/1999/xhtml'>\n    <ul >"  > /tmp/madde
-echo "$b" >> /tmp/madde 
-sed -i -e "s_*_      <li>_g" /tmp/madde
-echo "    </ul>\n</body>" >> /tmp/madde  """
+madde = """sed -i 's/^/*/' %s""" %(TMP_FILE)
 ####################################################
-rmadde = "sed -i -e 's_*__g' /tmp/wiki-editor"
+rmadde = "sed -i -e 's_*__g' %s""" %(TMP_FILE)
+
 ####################################################
-def hakkinda(w=False):
-	hakkinda = gtk.AboutDialog()	
-	hakkinda.set_title("Wiki Editor ")
-	hakkinda.set_program_name(program)
-	hakkinda.set_version(versiyon) 
-	hakkinda.set_copyright(kim)
-	hakkinda.set_icon_from_file("wiki-editor.png")
-	hakkinda.set_license(lisans)
-	hakkinda.set_authors(mail)
-	logo = GdkPixbuf.Pixbuf.new_from_file_at_size("wiki-editor.png", 148, 148)
-	hakkinda.set_logo(logo)	
+
+menu_setup = { 
+
+	"ARACLAR":{
+	"Wiki Kodlarını Pasifleştir":no,
+	"Wiki Kodlarını Pasifleştirme":rno,
+	"Maddele":madde,"Maddeleme":rmadde,
+	"Boşlukları Kodla":bosluk,"Boşlukları Kodlama":rbosluk
+	},
+
+	"GORUNUM":
+	{"Simge":"ICONS",
+  	"Metin":"TEXT",
+	"ve":"BOTH"},
 	
-	hakkinda.show_all()
-	if  hakkinda.run() == gtk.ResponseType.CANCEL or gtk.ResponseType.CLOSE:
-		hakkinda.destroy()
+	"HIZALAMA": 
+	{"Sola Hizala":"LEFT",
+  	"Ortala":"CENTER",
+	"Sağa Hizala":"RIGHT"},
+}
 
 ################UI INFO MENU AŞAMALARI######################################
 UI_INFO = """
@@ -245,3 +278,75 @@ ksayol="""
 F11		Tam Ekran Moduna Geçmek için,
 F1		İçindekiler sayfasına gitmek için,
 """
+def hakkinda(w=False):
+	hakkinda = gtk.AboutDialog()	
+	hakkinda.set_title(program)
+	hakkinda.set_program_name(program)
+	hakkinda.set_version(versiyon) 
+	hakkinda.set_copyright(kim)
+	hakkinda.set_icon_from_file(logo)
+	hakkinda.set_license(lisans)
+	hakkinda.set_authors(mail)
+	icon = GdkPixbuf.Pixbuf.new_from_file_at_size(logo, 148, 148)
+	hakkinda.set_logo(icon)	
+	
+	hakkinda.show_all()
+	if  hakkinda.run() == gtk.ResponseType.CANCEL or gtk.ResponseType.CLOSE:
+		hakkinda.destroy()
+		
+def get_stock(stock_):
+	image_ = gtk.Image()
+	image_.set_from_stock( stock_,1)
+	return image_
+
+def get_filechooser(desc_, type_="OPEN"):
+
+	dialog = gtk.FileChooserDialog(
+		desc_,None,
+		getattr(gtk.FileChooserAction,type_),
+		(gtk.STOCK_CANCEL, gtk.ResponseType.CANCEL,
+		gtk.STOCK_OPEN, gtk.ResponseType.OK)
+		)
+	
+	dialog.set_default_response(gtk.ResponseType.OK)
+	dialog.set_icon_from_file("wiki-editor.png")
+	filter = gtk.FileFilter()
+	filter.set_name("Tüm Dosyalar")
+	filter.add_pattern("*")
+	txt = gtk.FileFilter()
+	txt.set_name("txt")
+	txt.add_pattern("*txt")
+	dialog.add_filter(filter)
+	dialog.add_filter(txt)
+	response = dialog.run()   	
+	return response, dialog
+
+def mesaj(msj):
+	dialog = gtk.MessageDialog(type=gtk.MessageType.INFO, buttons=gtk.ButtonsType.OK)
+	dialog.set_markup(msj)
+	dialog.show()
+				
+	if dialog.run() == gtk.ResponseType.OK:
+		dialog.destroy()   
+
+def hata(msj):
+	from __main__ import hito as notebook
+
+	buffer = notebook.current_editor().get_buffer()
+	pixbuf =  GdkPixbuf.Pixbuf.new_from_file_at_size("gtk-cancel.png",128,128)
+	iter = buffer.get_iter_at_offset(0)
+	buffer.insert(iter,"\n\n")
+	buffer.insert_pixbuf(iter, pixbuf)
+	buffer.insert(iter,msj)
+	tag = buffer.create_tag( foreground="black",
+				paragraph_background="#7F3731",
+				right_margin=0,
+				indent=50,
+				left_margin=0,
+				size_points=15.0,
+				wrap_mode=gtk.WrapMode.WORD )
+	s, e = buffer.get_bounds()
+	buffer.apply_tag(tag, s,e )
+	notebook.current_editor().set_editable(False)
+	notebook.current_editor().set_border_window_size(gtk.TextWindowType.LEFT, 0)
+	buffer.set_modified(False)

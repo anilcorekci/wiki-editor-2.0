@@ -1,9 +1,4 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*- 
-#Yararlanılan Kaynaklar;
-# http://www.pygtk.org/pygtk2tutorial/
-#http://www.eurion.net/python-snippets/snippet/GtkSourceView%20Example.html
-
 
 import gi
 gi.require_version('Gtk', '3.0')
@@ -14,6 +9,7 @@ import os
 
 ileti = "From main function hito -> ileti gtk.label"
 statu = "From main function hito -> statu gtk.label"
+radio_action = { 1:["ara",True], 2: ["ara",False], 3: ["back_ward",1] }
 
 class wikieditor(gtk.ScrolledWindow):
 	def __init__(self):
@@ -22,9 +18,9 @@ class wikieditor(gtk.ScrolledWindow):
 		self.add(self.widget())
 
 		#### getting variables from __main__ hito
-		import __main__ as main_
-		globals()["ileti"] = main_.hito.ileti
-		globals()["statu"] =  main_.hito.statu
+		from __main__ import hito as notebook
+		globals()["ileti"] = notebook.ileti
+		globals()["statu"] =  notebook.statu
 		############################
 
 	def get_widget(self): return self.edit
@@ -96,7 +92,7 @@ class wikieditor(gtk.ScrolledWindow):
 		else:
 			ileti.set_text("%d Tane Eşleşme Bulundu.." % i)
 
-	def  heim(self, hem):
+	def back_ward(self, *args):
 		buffer = self.edit .get_buffer()
 		iter = buffer.get_iter_at_mark(buffer.get_insert())
 		str = self.search_text.get_text()	
@@ -112,7 +108,7 @@ class wikieditor(gtk.ScrolledWindow):
 			ileti.set_text("Hiçbir Eşleşme Bulunamadı!")
 
 	def devam(self,  forward):
-		radio_action = { 1:["ara",True], 2: ["ara",False], 3: ["heim",1] }
+		
 		for radio in self.radio:
 			if self.radio[radio].get_active():
 				action, value = radio_action[radio]
@@ -127,8 +123,6 @@ class wikieditor(gtk.ScrolledWindow):
         # For each iter, get its location and add it to the arrays.
         # Stop when we pass last_y
 		count = 0
-		size = 0
-		
 		while not iter.is_end():
 			y, height = text_view.get_line_yrange(iter)
 			buffer_coords.append(y)
@@ -163,8 +157,6 @@ class wikieditor(gtk.ScrolledWindow):
 	def yazdir(self,w,data=False):	
 	#	print ("it works!")
 		window = self.edit.get_toplevel()
-		buffer = self.edit.get_buffer()
-			
 		compositor = edit.PrintCompositor().new_from_view(self.edit )
 		compositor.set_wrap_mode(gtk.WrapMode.CHAR)
 		compositor.set_highlight_syntax(True)
@@ -173,14 +165,14 @@ class wikieditor(gtk.ScrolledWindow):
 		compositor.set_footer_format(True, '%T', filename, 'Sayfa %N/%Q')
 		compositor.set_print_header(True)
 		compositor.set_print_footer(True)
-			
+
 		print_op = gtk.PrintOperation()
 		print_op.connect("begin-print", self.begin_print_cb, compositor)
 		print_op.connect("draw-page", self.draw_page_cb, compositor)
 		res = print_op.run(gtk.PrintOperationAction.PRINT_DIALOG, window)
 			
 		if res == gtk.PrintOperationResult.ERROR:
-			self.hata("Hatalı Baskı Dosyası:\n\n" + filename)
+			print ("Hatalı Baskı Dosyası:\n\n" + filename)
 		elif res == gtk.PrintOperationResult.APPLY:
 			print  ('Baskı Dosyası: "%s"' % os.path.basename(filename ))
 

@@ -25,11 +25,10 @@ import notebook as pen
 hito = pen.hitokiri()
 	
 if __name__ == "__main__":
-	if len(sys.argv) < 2:
-		hito.sek(1,False,False)	
-	else:	
+	if len(sys.argv) < 2: hito.yeni(False)
+	else:
 		dosya = sys.argv[1]
-		hito.sek(1,dosya,dosya) 
-		hito.open(dosya)		
+		hito.yeni(dosya)
+		hito.open(dosya)
 	#hito.ayarlar()
 	gtk.main()

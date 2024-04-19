@@ -176,6 +176,7 @@ class hitokiri(object):
 		
 		self.yol = yol + text.split(":")[2]
 
+	@property
 	def current_editor(self):
 		page = self.notebook.get_current_page()
 		sw = self.notebook.get_nth_page(page)
@@ -184,8 +185,12 @@ class hitokiri(object):
 			buffer.set_left_margin(8)
 
 		except AttributeError:
-			buffer = None				
+			buffer = None
 		return buffer
+	
+	@property
+	def current_buffer(self):
+		return self.current_editor.get_buffer()
 
 	def menu(self,item):
 		self.menu = gtk.Menu()
@@ -268,7 +273,7 @@ class hitokiri(object):
 		tip = self.label.get_text()
 		lang = ar.langs[tip]
 		language = self.lm.guess_language(content_type=lang)
-		self.current_editor().get_buffer().set_language(language) 	
+		self.current_buffer.set_language(language) 	
 
 	def yeni(self,yol, baslik="yok"):
 		page_number = str( self.notebook.get_current_page() +2 )
@@ -329,7 +334,7 @@ class hitokiri(object):
 
 			response_ = None 
 
-			if self.current_editor().get_buffer().get_modified():
+			if self.current_buffer.get_modified():
 				dialog = gtk.MessageDialog(type=gtk.MessageType.WARNING)
 				dialog.add_button("Kaydetmeden Kapat",gtk.ResponseType.NO)
 				dialog.add_button("İptal",gtk.ResponseType.CANCEL)
@@ -388,14 +393,14 @@ class hitokiri(object):
 
 	def geri(self,*args):
 
-		if self.current_editor().get_buffer().can_undo():
-			self.current_editor().get_buffer().undo()		 
+		if self.current_buffer.can_undo():
+			self.current_buffer.undo()		 
 		else:		
 			self.ileti.set_text( "Bellekte Başka Geri Alınıcak Argüman Yok..")
 
 	def tekrar_yap(self,*args):
-		if self.current_editor().get_buffer().can_redo():
-			self.current_editor().get_buffer().redo()		 
+		if self.current_buffer.can_redo():
+			self.current_buffer.redo()		 
 		else:
 			self.ileti.set_text( "Bellekte Başka Tekrar Yapılıcak Argüman Yok..")
 
@@ -489,10 +494,9 @@ class hitokiri(object):
 		self.notebook.show()	
 		if self.notebook.get_n_pages() < 1:
 			self.yeni(False)
-			buffer = self.current_editor().get_buffer()
-			buffer.set_text(ar.lisans+"\n"+ar.ksayol)
-			buffer.set_undo_manager()
-			buffer.set_modified(False)
+			self.current_buffer.set_text(ar.lisans+"\n"+ar.ksayol)
+			self.current_buffer.set_undo_manager()
+			self.current_buffer.set_modified(False)
 
    
 		builder = gtk.Builder()        
@@ -521,7 +525,7 @@ class hitokiri(object):
 	
 		self.font_spin =  builder.get_object("spinbutton1")	
 		self.font_spin.connect( "value_changed", lambda *x:
-					self.current_editor().set_tab_width(
+					self.current_editor.set_tab_width(
 					int( ("%s" % x[0].get_value()).strip("0.")) )
 			)
 
@@ -531,12 +535,12 @@ class hitokiri(object):
 		self.yazi = builder.get_object("fontbutton1")
 		self.yazi.set_font_name(data["font"][0])
 		self.yazi.connect("font-set",
-				lambda x: self.current_editor().modify_font(self.yazi.get_font_desc())
+				lambda x: self.current_editor.modify_font(self.yazi.get_font_desc())
 			)
 
 		self.show_number =  builder.get_object("checkbutton1")	
 		self.show_number.connect( "toggled",
-				lambda x: self.current_editor().set_show_line_numbers(x.get_active() )
+				lambda x: self.current_editor.set_show_line_numbers(x.get_active() )
 			)
 
 		self.show_number.set_active(eval(data["sekmeleri_say"][0] ))
@@ -562,10 +566,10 @@ class hitokiri(object):
 
 	def yazil(self,*data):
 		if self.modify_font.get_active() == True:
-			self.current_editor().modify_font(None)
+			self.current_editor.modify_font(None)
 		else:    		
 			self.yazitipi =  self.yazi.get_font_desc()
-			self.current_editor().modify_font(self.yazitipi)
+			self.current_editor.modify_font(self.yazitipi)
 
 	def radio_wrap(self,selected_=False):
 
@@ -576,7 +580,7 @@ class hitokiri(object):
 			if self.wrap_mode[radio][1].get_active():
 				if selected_ is True:
 					return self.wrap_mode[radio][0]
-				self.current_editor().set_wrap_mode(getattr(gtk.WrapMode, self.wrap_mode[radio][0]))
+				self.current_editor.set_wrap_mode(getattr(gtk.WrapMode, self.wrap_mode[radio][0]))
 				break
 		#	print(self.wrap_mode[radio])
 
@@ -612,27 +616,25 @@ class hitokiri(object):
 		# set_up data from wiki.db
 		if set_up is not False:
 			data = self.set_ayar(True)
-			editor = self.current_editor()
 
 			for settings in sorted(data):
-				set_value_as = data[settings][0]
-				set_value = data[settings][1]
+				set_value_as, set_value = data[settings]
 				
 				if  settings == "wrap_mode":
-					getattr(editor, set_value) (getattr(gtk.WrapMode, set_value_as))
+					getattr(self.current_editor, set_value) (getattr(gtk.WrapMode, set_value_as))
 
 				elif settings == "font":
 					self.yazitipi = pango.FontDescription(set_value_as)
-					getattr(editor, set_value)(self.yazitipi)
+					getattr(self.current_editor, set_value)(self.yazitipi)
 
 				elif settings == "yazi_tipi" and eval(set_value_as) is True:
-					getattr(editor, set_value)(None)
+					getattr(self.current_editor, set_value)(None)
 
 				elif "sekme" == settings:
-					getattr(editor, set_value) (int(set_value_as.split(".0")[0]))
+					getattr(self.current_editor, set_value) (int(set_value_as.split(".0")[0]))
 
 				elif "sekmeleri_say" == settings:
-					getattr(editor, set_value) (eval(set_value_as))
+					getattr(self.current_editor, set_value) (eval(set_value_as))
 			return False
 ################################################################3
 		###### update data from ui input ###############
@@ -676,21 +678,20 @@ class hitokiri(object):
 
 	def set_text(self, text, insert=None):
 			
-		buffer = self.current_editor().get_buffer()
-		buffer.begin_user_action()
+		self.current_buffer.begin_user_action()
 		if insert:
-			buffer.insert_at_cursor(text)
+			self.current_buffer.insert_at_cursor(text)
 		else:
-			start, end = buffer.get_selection_bounds()
-			buffer.delete(start, end)
-			buffer.insert_at_cursor(text)
-		buffer.end_user_action()
+			start, end = self.current_buffer.get_selection_bounds()
+			self.current_buffer.delete(start, end)
+			self.current_buffer.insert_at_cursor(text)
+		self.current_buffer.end_user_action()
 
 	def selection_(self, head_, tail_ ):
 
 		konu = self.get_konu()
 
-		if self.current_editor() and konu:
+		if self.current_editor and konu:
 			self.set_text(head_ + konu + tail_)
 			return True
 		else:
@@ -699,16 +700,15 @@ class hitokiri(object):
 
 	def get_konu(self, all_text=False):
 
-		buffer = self.current_editor().get_buffer()
 
 		if all_text == True:
-			start, end = buffer.get_bounds()
-			konu= buffer.get_slice(start, end,1)
+			start, end = self.current_buffer.get_bounds()
+			konu= self.current_buffer.get_slice(start, end,1)
 			return konu
 
-		if bounds:=buffer.get_selection_bounds():
+		if bounds:=self.current_buffer.get_selection_bounds():
 			start, end = bounds
-			konu = self.current_editor().get_buffer().get_slice(start, end,1)
+			konu = self.current_buffer.get_slice(start, end,1)
 			return konu
 		else:
 			self.ileti.set_text("Seçili hiç bir metin yok !")
@@ -768,7 +768,7 @@ class hitokiri(object):
 
 			elif label_ed in w.get_label():
 				set_up = getattr(gtk.Justification, "%s" %(menu_setup["HIZALAMA"][label_ed]) )
-				self.current_editor().set_justification(set_up); break
+				self.current_editor.set_justification(set_up); break
 
 	def change_screen(self, *args):
 		global FULL_SCREEN
@@ -784,9 +784,9 @@ class hitokiri(object):
 
 			if  self.notebook.get_n_pages() < i: exit(0)
 
-			elif self.current_editor():
+			elif self.current_editor:
 
-				if self.current_editor().get_buffer().get_modified():
+				if self.current_buffer.get_modified():
 					soru = gtk.MessageDialog(type=gtk.MessageType.QUESTION , buttons=gtk.ButtonsType.YES_NO)
 					soru.set_markup("<b>Kayıt Edilmemiş Değişiklikler Var </b>"+\
 					 "\n<i>Yine de Programdan çıkmak istediğinize emin misiniz?</i>")
@@ -812,7 +812,7 @@ class hitokiri(object):
 
 			dosya.write(konu); dosya.close()	
 			self.ileti.set_text("' "+ self.yol + "' dosyası kayıt edildi..")
-			self.current_editor().get_buffer().set_modified(False)
+			self.current_buffer.set_modified(False)
 
 	def yazdir(self,w,data=False):
 		page = self.notebook.get_current_page()
@@ -846,7 +846,6 @@ class hitokiri(object):
 		except AttributeError:
 			self.label.set_text("Düz Metin")
 
-		buffer = self.current_editor().get_buffer()
-		buffer.set_language(language) 
-		buffer.set_undo_manager()
-		buffer.set_modified(False)
+		self.current_buffer.set_language(language) 
+		self.current_buffer.set_undo_manager()
+		self.current_buffer.set_modified(False)

@@ -187,7 +187,7 @@ class hitokiri(object):
 		except AttributeError:
 			buffer = None
 		return buffer
-	
+
 	@property
 	def current_buffer(self):
 		return self.current_editor.get_buffer()
@@ -700,7 +700,6 @@ class hitokiri(object):
 
 	def get_konu(self, all_text=False):
 
-
 		if all_text == True:
 			start, end = self.current_buffer.get_bounds()
 			konu= self.current_buffer.get_slice(start, end,1)
@@ -742,9 +741,7 @@ class hitokiri(object):
 
 	def sed_setup(self, widget, komut=None):
 
-		for label in menu_setup["ARACLAR"]:
-			if label == widget.get_label():
-				komut = menu_setup["ARACLAR"][label]; break
+		komut = menu_setup["ARACLAR"][widget.get_label()]
 
 		if konu:=self.get_konu():
 

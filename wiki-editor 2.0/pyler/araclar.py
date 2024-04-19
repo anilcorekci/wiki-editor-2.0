@@ -332,7 +332,7 @@ def mesaj(msj):
 def hata(msj):
 	from __main__ import hito as notebook
 
-	buffer = notebook.current_editor().get_buffer()
+	buffer = notebook.current_buffer
 	pixbuf =  GdkPixbuf.Pixbuf.new_from_file_at_size("gtk-cancel.png",128,128)
 	iter = buffer.get_iter_at_offset(0)
 	buffer.insert(iter,"\n\n")
@@ -347,6 +347,6 @@ def hata(msj):
 				wrap_mode=gtk.WrapMode.WORD )
 	s, e = buffer.get_bounds()
 	buffer.apply_tag(tag, s,e )
-	notebook.current_editor().set_editable(False)
-	notebook.current_editor().set_border_window_size(gtk.TextWindowType.LEFT, 0)
+	notebook.current_editor.set_editable(False)
+	notebook.current_editor.set_border_window_size(gtk.TextWindowType.LEFT, 0)
 	buffer.set_modified(False)

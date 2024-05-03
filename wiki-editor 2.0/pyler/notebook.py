@@ -620,7 +620,7 @@ class WikiEditor():
         font_spin = builder.get_object("spinbutton1")
         font_spin.connect( "value_changed", lambda *x:
                     self.current_editor.set_tab_width(
-                    int( f'{x[0].get_value().strip("0.")}')
+                    int( f'{x[0].get_value()}'.strip("0."))
                 )  )
 
         font_spin.set_value(float(data["sekme"][0] ) )

@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*- 
 #import mechanize , cookielib, some coool stuff here
+import os
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk as gtk
-import sys,os
 import araclar as ar
 class Uyeol(gtk.Assistant):
 	def __init__(self):
@@ -25,7 +25,7 @@ class Uyeol(gtk.Assistant):
 		resim = gtk.Image()
 		resim.set_from_file("wikiubuntu-tr.png")
 		bilgi = gtk.Label()
-		bilgi.set_markup(ar.tayfa)
+		bilgi.set_markup(ar.TEAM)
 		frame = gtk.Frame()
 		frame.add(bilgi)
 		table.attach(resim,0,1,0,1)

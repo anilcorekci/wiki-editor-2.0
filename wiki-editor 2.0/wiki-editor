@@ -102,6 +102,10 @@ while test $# -gt 0 ; do
       cd "$dizin" ; python3 ./wiki_editor.py   "$1"
       exit 1
       ;;
+     *)
+      cd "$dizin" ; python3 ./wiki_editor.py   "$*"
+      exit 1
+      ;;     	 
   esac
 done
 cd "$dizin" ; python3 ./wiki_editor.py

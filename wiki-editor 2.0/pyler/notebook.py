@@ -553,7 +553,7 @@ class WikiEditor():
             if order == 1:
                 self.gl_b["radio"][order] = gtk.RadioButton( None, None )
             else:
-                self.gl_b["radio"]= gtk.RadioButton.new_from_widget(
+                self.gl_b["radio"][order] = gtk.RadioButton.new_from_widget(
                                         self.gl_b["radio"][order-1]
                                     )
 

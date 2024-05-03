@@ -417,6 +417,7 @@ class WikiEditor():
 
                 if response_ == gtk.ResponseType.OK:
                     self.kayit(self.gl_b["name"], True)
+                    dialog.destroy()                    
                     break
                 if response_ == gtk.ResponseType.CANCEL:
                     dialog.destroy()

@@ -203,14 +203,11 @@ class WikiEditor():
         self.gl_b["tab_n_page"] = tab_n_page
         hbox = tab.get_tab_label(widget)
         label = hbox.get_children()[1]
-        self.gl_b["name"] = label.get_text()
-        text = label.get_tooltip_text()
-        yol = text.split(":")[1]
 
-        if os.path.isfile(yol):
-            self.gl_b["yol"] = yol
-        else:
-            self.gl_b["yol"] = f"{yol}:{tab_n_page + 1}"
+        self.gl_b["name"] = label.get_text()
+
+        if not os.path.isfile(self.gl_b["yol"]):
+            self.gl_b["yol"] = f"{UNDEFINED}:{tab_n_page + 1}"
 
     @property
     def current_editor(self):

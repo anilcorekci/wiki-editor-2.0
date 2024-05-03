@@ -14,48 +14,11 @@ Seçenekler:
 -h,--help ,	Yardım seçenekleri için inceleyin..
 --help-all , 	Tüm belgeyi okuyun..
 "
-Lisans="
 
-Wiki Editor özgür bir yazılımdır, onu Özgür Yazılım
-Vakfı'nın yayınladığı GNU Genel Kamu Lisansı'nın 2.
-sürümü veya (tercihinize bağlı) daha sonraki sürümleri
-altında dağıtabilir ve/veya değiştirebilirsiniz.
+Lisans=$(cat pyler/araclar.py|sed -n '123,132p')
 
+ksayol=$(cat pyler/araclar.py|sed -n '273,293p')
 
-Wiki Editor  faydalı olacağı umut edilerek dağıtılmaktadır,
-fakat HİÇBİR GARANTİSİ YOKTUR; hatta ÜRÜN DEĞERİ
-ya da BİR AMACA UYGUNLUK gibi garantiler de
-vermez. Lütfen GNU Genel Kamu Lisansı'nı daha fazla
-ayrıntı için inceleyin.
-
-
-
-Lütfen hataları bildirin 
-Anıl Çörekcioğlu  <anilcorekci@gmail.com>
-"
-ksayol="
-<control>N		Yeni bir pencere açmak için,
-<control>O		Bir metin belgesi açmak için,
-<control>S		Yapılan değişiklikleri kayıt etmek için,
-<control>F		Kelime grubunda arama yapmak için,
-<control>Q		Programdan çıkmak için
-
-<control>Z  		Geri Al,          
-<shift><control>Z       Tekrar Yap,
-<control>P		Tercihler,      
-                
-<control>F1             Temsili Görünüm, 
-
-<control>E		Boşlukları Kodla ,
-<control><shift>E       Boşlukları Kodlama ,
-<control>W		Wiki Kodlarını Pasifleştir ,  
-<control><shift>W	Wiki Kodlarını Pasifleştirme,
-<control><shift>M	Maddele,
-<control><shift>N	Maddeleme, 
-
-F11		Tam Ekran Moduna Geçmek için,
-F1		İçindekiler sayfasına gitmek için,
-"   
 dizin='./pyler'
 #mkdir -p ~/.gconf/apps/wiki-editor/
 # touch -a ~/.gconf/apps/wiki-editor/%gconf.xml  

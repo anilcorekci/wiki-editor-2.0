@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#pylint: disable=E0611, E1101, C0415
+#pylint: disable=E0611, E1101
 """
 Return as a gtkScorlledWindow
 contains gtkSourceView widget
@@ -17,24 +17,25 @@ ILETI = gtk.Label("From main function hito -> ileti gtk.label")
 STATU = gtk.Menu #"From main function hito -> statu gtk.label"
 radio_action = { 1:["ara",True], 2: ["ara",False], 3: ["back_ward",1] }
 
-class WikiEditor(gtk.ScrolledWindow):
+class WikiText(gtk.ScrolledWindow):
     """
     getting variables from __main__ hito
     """
-    renk = None #foregroun color for search
+    renk = None #foreground color for search
     radio = None
     search_text = None
+    edit = None
+    tbuffer = None
 
-    def __init__(self):
+    def __init__(self, ileti, statu):
         """
         initiliaze as a scrolled window
         """
-        from __main__ import HITO as notebook
-        globals()["ILETI"] = notebook.ileti
-        globals()["STATU"] =  notebook.statu
+        globals()["ILETI"] = ileti
+        globals()["STATU"] =  statu
         gtk.ScrolledWindow.__init__(self)
     #    self.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        self.add(self.widget())
+        self.add(self.widget)
 
     def get_widget(self):
         """
@@ -42,6 +43,7 @@ class WikiEditor(gtk.ScrolledWindow):
         """
         return self.edit
 
+    @property
     def widget(self):
         """
         main widge

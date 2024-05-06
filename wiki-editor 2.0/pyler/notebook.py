@@ -1,42 +1,55 @@
 # -*- coding: utf-8 -*-
-#pylint: disable=consider-using-f-string
-#pylint: disable=C0413, R0904
+#pylint:disable=C0413
 """
 Wiki Editor 2010!
 """
 import sys
-from ast import literal_eval
 import os
 import re
-import sqlite3
 
 import gi
 gi.require_version('GtkSource', '4')
+gi.require_version('Gtk', '3.0')
 
 from gi.repository import GtkSource as edit
 from gi.repository import Gtk as gtk
-from gi.repository import Gdk as gdk
 from gi.repository import GdkPixbuf
-from gi.repository import Pango as pango
 
-import wikitext as wiki
+from tercihler import ConfigWindow
+from buildtool import ToolItem
+from custom_button import CustomButton
+from wikitext import WikiText
+
 import uyeol as ol
 
-import araclar as ar
-from araclar import menu_setup
-from araclar import get_stock
-from araclar import get_filechooser
-from araclar import mesaj
-from araclar import hata
+from araclar import (
+        LANGS, SIMGELER, TMP_FILE, UI_INFO, HAK, MENUSETUP,
+        get_stock, hakkinda, get_filechooser, mesaj, hata,
+    )
 
+# referring names from araclar:
+#  MENUSETUP,LANGS, SIMGELER, TMP_FILE, UI_INFO, HAK #pix or infos
+#  get_stock, hakkinda get_filechooser, mesaj, hata #functions
 
 TARGET_TYPE_URI_LIST = 80
-WIKI_DB = os.environ['HOME']+"/.wiki_editor.db"
-UI_INFO = ar.UI_INFO
-SIMGELER = ar.simgeler
 VISIT_PAGE = 'http://wiki.ubuntu-tr.net/index.php/Acemiler_i%C3%A7in_Wiki&'
-TMP_FILE = ar.TMP_FILE
 UNDEFINED = "Kaydedilmemiş"
+
+def get_main_menu(pencere, menu_items):
+    """
+    return uimanager Menubar
+    """
+    uimanager = gtk.UIManager()
+    action_group = gtk.ActionGroup(name="my_actions")
+    action_group.add_actions(menu_items)
+
+    uimanager.add_ui_from_string(UI_INFO)
+    uimanager.insert_action_group(action_group)
+
+    accelgroup = uimanager.get_accel_group()
+    pencere.add_accel_group(accelgroup)
+
+    return uimanager.get_widget("/MenuBar")
 
 class WikiEditor():
     """
@@ -48,16 +61,10 @@ class WikiEditor():
         "tab_n_page": None, # current nth page of notebook
         "yol": "/file//path", # file path of wikitext
         "name": None, # file name of wikitext
-        "pencere": None, # always equal to the active page that shown
-        "yazitipi": None, # current font preference
-        "wrap_mode": {1:["WORD"], 2:["CHAR"], 3:["NONE"]},
-        # current choosen wrap mode for wikitext
-        "radio": {}, # give list of radio button in relation to categories window
+        "tool_active": gtk.Toolbar,
         "full_screen": None, #top_level window value
+        "showy_widgets_": [gtk.Box, gtk.Toolbar, gtk.Menu],
         "label": gtk.Label, # status bar label gives information about langugae
-        "font_spin": None, "showy_widgets_": [gtk.Box, gtk.Toolbar, gtk.Menu],
-        "yazi": None, #gtk fontbutton for tercihler window
-        "show_number": None,  "modify_font": None,  "tool_active": gtk.Toolbar,
         "lang_manager": edit.LanguageManager(),
     }
 
@@ -76,50 +83,81 @@ class WikiEditor():
         pencere.set_icon_from_file("wiki-editor.png")
         pencere.resize(780,580)
 
-        self.menu_items = [
+        menu_items = [
             ("Dosya", None, "Dosya"),
             ( "Yeni", None,"Yeni", "<control>N", None, lambda _: self.yeni(False)),
             ( "Aç", None,"Aç", "<control>O", None, self.open_file ),
             ( "Kaydet", None, "Kaydet","<control>S", None, self.kayit),
             ( "Farklı Kaydet", None, "Farklı Kaydet","<shift><control>S", None, self.save_as ),
-            ( "Yazdır", None, "Yazdır", "<control>Y", None, self.yazdir),
+
+            ( "Yazdır", None, "Yazdır", "<control>Y", None, lambda widget:
+                self.notebook.get_nth_page( #get current wikitext from notebook
+                    self.gl_b["tab_n_page"]
+                ).yazdir( widget, data=self.gl_b["yol"] ) ),
+
             ( "Çık", None, "Çık", "<control>Q", None, self.soru),
-            ( "Düzen", gtk.Action(name = "Düzen"), "Düzen"),
-            ( "Geri Al", None,"Geri Al", "<control>Z", None, self.geri ),
-            ( "Tekrar Yap", None,"Tekrar Yap", "<shift><control>Z", None, self.tekrar_yap),
+            ( "Düzen", gtk.Action(name="Düzen"), "Düzen"),
+
+            ( "Geri Al", None,"Geri Al", "<control>Z", None, lambda _:
+                self.current_buffer.undo() if self.current_buffer.can_undo()
+                else self.ileti.set_text( "Bellekte Başka Geri Alınıcak Argüman Yok..")
+            ),
+
+            ( "Tekrar Yap", None,"Tekrar Yap", "<shift><control>Z", None, lambda _:
+                self.current_buffer.redo() if self.current_buffer.can_redo()
+                else self.ileti.set_text( "Bellekte Başka Tekrar Yapılıcak Argüman Yok..")
+            ),
+
             ( "Hizalama", None,"Hizalama" ),
             ( "Sola Hizala",None,"Sola Hizala",None, None, self.set_tool_edit),
             ( "Ortala",None ,"Ortala",None, None, self.set_tool_edit),
             ( "Sağa Hizala",None ,"Sağa Hizala",None, None, self.set_tool_edit),
-            ( "Tercihler", None, "Tercihler",  "<control>P", None, self.tercihler),
-            ( "Bul", None, "Bul", "<control>F",None, self.arama),
-            ( "Görünüm", gtk.Action(name = "Görünüm"), "Görünüm" ),
+            ( "Tercihler", None, "Tercihler",  "<control>P",
+                 None, lambda _: ConfigWindow(self).show_config ),
+
+            ( "Bul", None, "Bul", "<control>F",None, lambda widget:
+                self.notebook.get_nth_page(self.gl_b["tab_n_page"]).arama(widget, False)),
+
+            ( "Görünüm", gtk.Action(name="Görünüm"), "Görünüm" ),
             ( "Sadece Simge", None,"Sadece Simge", None, None, self.set_tool_edit),
             ( "Sadece Metin", None, "Sadece Metin", None, None, self.set_tool_edit),
             ( "Metin ve Simge", None,"Metin ve Simge", None, None, self.set_tool_edit),
-            ( "Tam Ekran", None, "Tam Ekran", "F11", None, self.change_screen ),
-            ( "Araçlar",gtk.Action(name = "Araçlar"), "Araçlar"),
-            ( "Boşlukları Kodla", None,"Boşlukları Kodla", "<control>E",None, self.sed_setup ),
+
+            ( "Tam Ekran", None, "Tam Ekran", "F11", None, lambda *_:
+              [ self.gl_b.update( {"full_screen": not self.gl_b["full_screen"] } ),
+              [ pencere.fullscreen() if self.gl_b["full_screen"]  else pencere.unfullscreen() ], ]
+            ),
+
+            ( "Araçlar",gtk.Action(name="Araçlar"), "Araçlar"),
+            ( "Boşlukları Kodla", None,"Boşlukları Kodla", "<control>E",None, self.set_tool_edit ),
             ( "Boşlukları Kodlama", None, "Boşlukları Kodlama",
-                    "<control><shift>E", None, self.sed_setup),
+                    "<control><shift>E", None, self.set_tool_edit),
+
             ( "Wiki Kodlarını Pasifleştir", None,
-                    "Wiki Kodlarını Pasifleştir", "<control>W",None, self.sed_setup ),
+                    "Wiki Kodlarını Pasifleştir", "<control>W",None, self.set_tool_edit ),
+
             ( "Wiki Kodlarını Pasifleştirme",None,
-                    "Wiki Kodlarını Pasifleştirme","<control><shift>W",None, self.sed_setup ),
-            ( "Maddele", None, "Maddele", "<control><shift>M", None, self.sed_setup ),
+                    "Wiki Kodlarını Pasifleştirme","<control><shift>W",None, self.set_tool_edit ),
+
+            ( "Maddele", None, "Maddele", "<control><shift>M", None, self.set_tool_edit ),
+
             ( "Maddeleme", None, "Maddeleme",
-                     "<control><shift>N", None, self.sed_setup ),
-            ( "Yardım", gtk.Action(name = "Yardım"),"Yardım" ),
+                     "<control><shift>N", None, self.set_tool_edit ),
+
+            ( "Yardım", gtk.Action(name="Yardım"),"Yardım" ),
             ( "İçindekiler", None, "İçindekiler" ,
                     "F1", None, lambda _: os.system(f'xdg-open {VISIT_PAGE}') ),
-            ( "Bize Katılın", None, "Bize Katılın", "F2", None, lambda _:  ol.Uyeol().main() ),
-            ( "Hakkında", None ,"Hakkında",None, None, ar.hakkinda),
+
+            ( "Bize Katılın", None, "Bize Katılın", "F2",
+                None, lambda _:  ol.Uyeol().main() ),
+
+            ( "Hakkında", None ,"Hakkında",None, None, hakkinda),
         ]
 
         box = gtk.VBox(False, 0)
         box.show()
 
-        menubar = self.get_main_menu(pencere)
+        menubar = get_main_menu(pencere, menu_items)
         box.pack_start( menubar, False, True, 0)
         menubar.show()
 
@@ -132,8 +170,14 @@ class WikiEditor():
         self.ileti = gtk.Label()
 ############
         hbox = gtk.HBox()
-        buton = self.menu(ar.langs)
-        toolbar = self.toolmake()
+        buton = CustomButton(self, LANGS)
+
+        toolbar = gtk.Toolbar()
+        toolbar.set_border_width(4)
+        self.gl_b["tool_active"] = toolbar
+
+        for item, list_info in SIMGELER.items():
+            ToolItem(self, item, *list_info )
 
         hbox.pack_start(self.ileti,True,False,0)
         hbox.pack_end(buton,False,True,30)
@@ -150,22 +194,31 @@ class WikiEditor():
         pix = GdkPixbuf.Pixbuf.new_from_file_at_size("üye.png",28,28)
         uye.set_from_pixbuf(pix)
 
-        self.toolitem("Yeni","Yeni Bir Belge Oluştur",
-                get_stock( gtk.STOCK_FILE),
-                lambda _: self.yeni(False))
-        self.toolitem( "Aç",   "Bir Dosya Aç",
-                get_stock(gtk.STOCK_OPEN),
-                self.open_file )
-        self.toolitem( "Tercihler", "Wiki Editor Tercihleri ",
-                get_stock( gtk.STOCK_PREFERENCES),
-                self.tercihler )
-        self.toolitem( "Üye Ol",
-                "Henüz Wikiye Üye Değil Misin ?\nO Zaman Bu Tam Senin İçin ..",
-                uye, lambda _: ol.Uyeol().main() )
+        hiding_items = [
 
-        self.toolitem( "Hakkında",
-                "Wiki Editor Hakkında",
-                ar.HAK, ar.hakkinda )
+            ["Yeni",  "Yeni Bir Belge Oluştur",
+            get_stock( gtk.STOCK_FILE),
+            lambda _: self.yeni(False) ],
+
+            ["Aç",  "Bir Dosya Aç",
+            get_stock(gtk.STOCK_OPEN),
+            self.open_file ],
+
+            ["Tercihler", "Wiki Editor Tercihleri ",
+            get_stock( gtk.STOCK_PREFERENCES),
+            lambda _: ConfigWindow(self).show_config],
+
+            ["Üye Ol",
+            "Henüz Wikiye Üye Değil Misin ?\nO Zaman Bu Tam Senin İçin ..",
+            uye, lambda _: ol.Uyeol().main() ],
+
+            ["Hakkında",
+            "Wiki Editor Hakkında",
+            HAK, hakkinda ]
+        ]
+
+        for item in hiding_items:
+            ToolItem(self,*item )
 
         table = gtk.Table(400,400)
         table.attach(self.notebook, 0, 400, 2, 399)
@@ -177,33 +230,18 @@ class WikiEditor():
         pencere.add(table)
         pencere.show_all()
         hide.hide()
-        self.pen = pencere
+
         self.gl_b["showy_widgets_"] = [ hbox, toolbar, menubar ]
 
-    def get_main_menu(self, pencere):
-        """
-        return uimanager Menubar
-        """
-        uimanager = gtk.UIManager()
-        action_group = gtk.ActionGroup(name="my_actions")
-        action_group.add_actions(self.menu_items)
 
-        uimanager.add_ui_from_string(UI_INFO)
-        uimanager.insert_action_group(action_group)
-
-        accelgroup = uimanager.get_accel_group()
-        pencere.add_accel_group(accelgroup)
-
-        return uimanager.get_widget("/MenuBar")
-
-    def switch(self, tab = False, widget = False, tab_n_page= False):
+    def switch(self, tab=False, widget= False, tab_n_page=False):
         """print(widget, tab_n_page)
         check file_path and assing to self.gl_b["yol"]
         """
-        self.gl_b["tab_n_page"] = tab_n_page
         hbox = tab.get_tab_label(widget)
         label = hbox.get_children()[1]
 
+        self.gl_b["tab_n_page"] = tab_n_page
         self.gl_b["name"] = label.get_text()
 
         if not os.path.isfile(self.gl_b["yol"]):
@@ -216,12 +254,13 @@ class WikiEditor():
         """
         page = self.notebook.get_current_page()
         scroll_w = self.notebook.get_nth_page(page)
+
         try:
             buffer = scroll_w.get_widget()
             buffer.set_left_margin(8)
-
         except AttributeError:
-            buffer = None
+            return None
+
         return buffer
 
     @property
@@ -231,106 +270,7 @@ class WikiEditor():
         """
         return self.current_editor.get_buffer()
 
-    def menu(self, item_list):
-        """
-        create menu item and return button widget
-        """
-        menu = gtk.Menu()
-        for each in item_list:
-            menu_items = gtk.MenuItem(each)
-            menu.append(menu_items)
-            menu_items.connect("activate", self.menuitem_response, each)
-            menu_items.show()
-
-        ekleme = gtk.HBox()
-        image = get_stock(gtk.STOCK_GO_DOWN)
-        label = gtk.Label("Düz Metin")
-        ekleme.pack_start(label,False,False,10)
-        ekleme.pack_start(image,False,False,0)
-        self.gl_b["label"] = label
-
-        def button_press( widget, event):
-            """
-            button press action for STATU the custom button
-            """
-        #    print(widget, event.type)
-            if event.type == gdk.EventType.BUTTON_PRESS:
-        #        if event.button == 1:
-                widget.popup(None, None, None, event.button, event.time, event.time)
-
-        buton = gtk.Button()
-        buton.set_relief(gtk.ReliefStyle.NONE)
-        buton.connect_object("event", button_press, menu)
-        buton.add(ekleme)
-        buton.show()
-        return buton
-
-    def menuitem_response(self, _, string):
-        """
-        change custom button label text
-        """
-        self.gl_b["label"].set_text(f"{string}")
-        self.change()
-
-    def toolmake(self):
-        """
-        self.toolitem("İtalik",   #Alt Metin
-        "Seçilen metin için italik yazı", #Balon Metin
-        ar.italikresim,
-        #Resim gtk.Image / eklemek için araclar.py--> ismi = resim("dosya_yolu")
-        ) #Buton için görev liste ise seçilen metin
-        için başına sonuna eklenecekler liste içinde "başı","sonu"
-        # liste değilse doğruda görev olarak çağırılacak..."""
-
-        toolbar = gtk.Toolbar()
-        self.gl_b["tool_active"] = toolbar
-        toolbar.set_border_width(4)
-
-        for item, list_info in SIMGELER.items():
-            self.toolitem(item, *list_info )
-
-        return toolbar
-
-    def toolitem(self, label, tooltip, resim, islem):
-        """
-        create tooltiem via getting args
-        """
-        item = gtk.ToolButton(resim, label)
-        item.set_tooltip_text(tooltip)
-        item.set_label(label)
-        item.set_icon_widget(resim)
-
-        type_of_islem = type(islem)
-
-        if type_of_islem is dict:
-        # if islem is dict unpack dict and call self.sablon
-            file_path, format_ = list( i for i in islem.items() )[0]
-            item.connect('clicked', lambda _: self.sablon(file_path, format_))
-        elif type_of_islem is list:
-        # if islem is list send it to self.selection_
-            item.connect('clicked',lambda _: self.selection_(islem[0], islem[1]) )
-        # if it's a string call it as a fuction within hitokiri...
-        elif type_of_islem is str:
-            item.connect('clicked', getattr(self, islem))
-        # if it's a fuction leave it as it is...
-        else:
-            item.connect('clicked',islem )
-
-        item.show()
-        self.gl_b["tool_active"].insert(item, -1)
-
-    def change(self, *_):
-        """
-        change current language of wikieditor
-        """
-    #    self.current_editor().get_buffer().set_data('languages-manager', lm)
-#        manager = self.current_editor().get_buffer().get_data('languages-manager')
-        tip = self.gl_b["label"].get_text()
-        lang = ar.langs[tip]
-        language = self.gl_b["lang_manager"].guess_language(content_type=lang)
-        self.current_buffer.set_language(language)
-
-    def yeni(self,yol, baslik = "yok"):
+    def yeni(self,yol, baslik=str):
         """
         create new tab with wikitext
         """
@@ -355,14 +295,44 @@ class WikiEditor():
             for i in re.findall(".*?../", baslik):
                 baslik=baslik.replace(i, "")
 
-        page_title = self.note_label_box( baslik, yol)
-        wiki_text = wiki.WikiEditor()
+        def note_label_box(label_text, yol):
+            """
+            create Hbox for page title and return
+            """
+            if self.notebook.get_n_pages() == 0:
+                self.gl_b["tool_active"].hide()
+                for show in self.gl_b["showy_widgets_"]:
+                    show.show()
+
+            box1 = gtk.HBox()
+            image = get_stock(gtk.STOCK_CLOSE)
+            image1 = get_stock(gtk.STOCK_FILE)
+            box1.add(image1)
+
+            label = gtk.Label(label_text)
+            box1.add(label)
+            label.set_tooltip_text(f"Dosya yolu: {yol}")
+
+            buton = gtk.Button()
+            buton.add(image)
+            buton.set_relief(gtk.ReliefStyle.NONE)
+            buton.set_tooltip_text("Belgeyi Kapat" )
+            buton.set_size_request(24, 24)
+            buton.connect("clicked", self.kapat, label_text)
+            self.gl_b["yol"] = yol
+            box1.add(buton)
+            box1.show_all()
+            return box1
+
+        page_title = note_label_box( baslik, yol)
+
+        wiki_text = WikiText(self.ileti, self.statu)
 
         self.notebook.append_page( wiki_text, page_title)
         self.notebook.show_all()
         self.notebook.next_page()
 
-        self.set_ayar(set_up = True)
+        ConfigWindow(self).set_ayar(set_up=True)
 
     def kapat(self, _, label_text):
         """
@@ -414,7 +384,7 @@ class WikiEditor():
 
                 if response_ == gtk.ResponseType.OK:
                     self.kayit(self.gl_b["name"], True)
-                    dialog.destroy()                    
+                    dialog.destroy()
                     break
                 if response_ == gtk.ResponseType.CANCEL:
                     dialog.destroy()
@@ -430,263 +400,6 @@ class WikiEditor():
             for hide in self.gl_b["showy_widgets_"]:
                 hide.hide()
 
-    def note_label_box(self, label_text, yol):
-        """
-        create Hbox and return it
-        """
-        if self.notebook.get_n_pages() == 0:
-            self.gl_b["tool_active"].hide()
-            for show in self.gl_b["showy_widgets_"]:
-                show.show()
-
-        box1 = gtk.HBox()
-        image = get_stock(gtk.STOCK_CLOSE)
-        image1 = get_stock(gtk.STOCK_FILE)
-        box1.add(image1)
-
-        label = gtk.Label(label_text)
-        box1.add(label)
-        label.set_tooltip_text(f"Dosya yolu: {yol}")
-
-        buton = gtk.Button()
-        buton.add(image)
-        buton.set_relief(gtk.ReliefStyle.NONE)
-        buton.set_tooltip_text("Belgeyi Kapat" )
-        buton.set_size_request(24, 24)
-        buton.connect("clicked", self.kapat, label_text)
-        self.gl_b["yol"] = yol
-        box1.add(buton)
-        box1.show_all()
-        return box1
-
-    def geri(self, *_):
-        """
-        undo action for buffer
-        """
-        if self.current_buffer.can_undo():
-            self.current_buffer.undo()
-        else:
-            self.ileti.set_text( "Bellekte Başka Geri Alınıcak Argüman Yok..")
-
-    def tekrar_yap(self, *_):
-        """
-        redo action for buffer
-        """
-        if self.current_buffer.can_redo():
-            self.current_buffer.redo()
-        else:
-            self.ileti.set_text( "Bellekte Başka Tekrar Yapılıcak Argüman Yok..")
-
-    def sablon(self, dosya, format_):
-        """
-        Build glade files from given path
-        """
-        builder = gtk.Builder()
-        builder.add_from_file( dosya )
-        vbox = builder.get_object("vbox1")
-        pencere = builder.get_object("window1")
-        pencere.set_modal(True)
-
-        dict_= {}
-        range_ = len(format_.split("{}"))  # number of entries
-        range_ = [ [1, range_], [range_, range_*2]]
-
-        for en_, lb_ in zip(range(*range_[0]), range(*range_[1]) ):
-            dict_[en_] =  builder.get_object("entry"+str(en_))
-            dict_[lb_] =  builder.get_object("label"+str(en_))
-
-        ekle = gtk.Button(" Tamam ")
-        ekle.connect("clicked", lambda _: self.set_en_label_text(dict_,range_,format_))
-        vbox.add(ekle)
-
-        self.gl_b["pencere"] = pencere
-        pencere.show_all()
-
-    def set_en_label_text(self, dict_,range_, format_):
-        """
-        order and apply actions for custom glade files
-        """
-        get_text = []
-        for en_, lb_ in zip(range(*range_[0]), range(*range_[1]) ):
-            if not dict_[en_].get_text():
-                mesaj(f"{ dict_[lb_].get_text() }\nBoş bırakılmamalı!")
-                return False
-            get_text.append(dict_[en_].get_text())
-
-        self.set_text(format_.format(*get_text), True)
-        self.gl_b["pencere"].destroy()
-        return True
-
-    def kategori(self, *_):
-        """
-        build, create and show categoreis
-        """
-        pencere = gtk.Window()
-        pencere.set_size_request(400,-1)
-        pencere.set_modal(True)
-        pencere.set_resizable(False)
-        pencere.set_title("Yazınız İçin Kategori")
-        pencere.set_icon_from_file("../Simgeler/Z-kategori.png")
-        box = gtk.VBox()
-
-        bilgi = { }
-
-        for kategori, order in zip(ar.kategoriler,range(1, len(ar.kategoriler)+1)):
-            bil = gtk.ListStore(str)
-            bilg = gtk.ComboBox.new_with_model(bil)
-
-            for liste_ in ar.kategoriler[kategori]:
-                bil.append([liste_])
-
-            rt1 = gtk.CellRendererText()
-            bilg.pack_start(rt1, True)
-            bilg.add_attribute(rt1, "text", 0)
-            bilg.set_active(0)
-            box.add(bilg)
-            bilgi[order] = bilg
-
-        hbox = gtk.VBox()
-
-        for order in range( 1, len(bilgi) + 1 ):
-            if order == 1:
-                self.gl_b["radio"][order] = gtk.RadioButton( None, None )
-            else:
-                self.gl_b["radio"][order] = gtk.RadioButton.new_from_widget(
-                                        self.gl_b["radio"][order-1]
-                                    )
-
-            hbox.add(self.gl_b["radio"][order])
-
-        dume = gtk.Button("Tamam")
-        dume.connect("clicked", lambda _: self.radio_clicked(bilgi))
-
-        kutu = gtk.Table(4, 4)
-        kutu.set_border_width(12)
-        kutu.set_col_spacings(8)
-        kutu.set_row_spacings(10)
-        kutu.attach(hbox, 0, 1, 1, 2)
-        kutu.attach(box, 1, 2, 1, 2)
-        kutu.attach(dume, 0, 4, 3, 4)
-        pencere.add(kutu)
-        pencere.show_all()
-        self.gl_b["pencere"] = pencere
-
-    def arama(self, widget, *_):
-        """
-        open search dialog
-        """
-        wiki_text = self.notebook.get_nth_page(self.gl_b["tab_n_page"])
-        wiki_text.arama(widget, False)
-
-    def tercihler(self, *_):
-        """
-        build and open preferences
-        """
-        self.notebook.show()
-        if self.notebook.get_n_pages() < 1:
-            self.yeni(False)
-            self.current_buffer.set_text(f"{ar.LICENCE}\n{ar.SHORTCUT}")
-            self.current_buffer.set_undo_manager()
-            self.current_buffer.set_modified(False)
-
-        builder = gtk.Builder()
-        builder.add_from_file("../Glade/tercihler.glade")
-        vbox = builder.get_object("hbuttonbox1")
-        pencere = builder.get_object("window1")
-
-        pencere.connect("delete_event",
-                lambda *x: [x[0].destroy(),self.set_ayar() ]
-            )
-
-        data = self.set_ayar(True)
-
-        kapat, yar = gtk.Button("Kapat"), gtk.Button("Yardım")
-
-        yar.connect("clicked",
-            lambda _: mesaj("Biri Buna Basar Demiştim Zaten...\n" +
-                """Yardım Almak İçin <a href= "http://www.ubuntu-tr.net\" >Ubuntu Türkiye</a> """)
-            )
-
-        vbox.add(yar)
-        vbox.add(kapat)
-
-        kapat.connect("clicked", lambda *x:
-                [ pencere.destroy(), self.set_ayar() ]
-            )
-
-        font_spin = builder.get_object("spinbutton1")
-        font_spin.connect( "value_changed", lambda *x:
-                    self.current_editor.set_tab_width(
-                    int( f'{x[0].get_value()}'.strip("0."))
-                )  )
-
-        font_spin.set_value(float(data["sekme"][0] ) )
-        self.gl_b["font_spin"] = font_spin
-
-        yazi = builder.get_object("fontbutton1")
-        yazi.set_font_name(data["font"][0])
-        yazi.connect("font-set",
-                lambda _: self.current_editor.modify_font(yazi.get_font_desc())
-            )
-        self.gl_b["yazi"] = yazi
-
-        show_number =  builder.get_object("checkbutton1")
-        show_number.connect( "toggled",
-                lambda x: self.current_editor.set_show_line_numbers(x.get_active() )
-            )
-        show_number.set_active(literal_eval(data["sekmeleri_say"][0] ))
-        self.gl_b["show_number"] = show_number
-
-        status_box = builder.get_object("checkbutton3")
-        status_box.connect("clicked", lambda x:
-            self.gl_b["showy_widgets_"][0].hide() if x.get_active()\
-                  else self.gl_b["showy_widgets_"][0].show() )
-
-        modify_font =  builder.get_object("checkbutton2")
-        modify_font.connect("toggled",self.yazil)
-        modify_font.set_active(literal_eval(data["yazi_tipi"][0] ))
-        self.gl_b["modify_font"] = modify_font
-
-        for add in range(1,4):
-            self.gl_b["wrap_mode"][add].extend([
-                    builder.get_object(f"radiobutton{add}"),
-                    False]
-                )
-
-            self.gl_b["wrap_mode"][add][1].connect("clicked",self.radio_wrap)
-
-            if self.gl_b["wrap_mode"][add][0] == data["wrap_mode"][0]:
-                self.gl_b["wrap_mode"][add][1].set_active(True)
-
-        self.gl_b["pencere"] = pencere
-        pencere.show_all()
-
-    def yazil(self, *_):
-        """
-        set font for wikitext
-        """
-        if self.gl_b["modify_font"].get_active() is True:
-            self.current_editor.modify_font(None)
-        else:
-            self.gl_b["yazitipi"] =  self.gl_b["yazi"].get_font_desc()
-            self.current_editor.modify_font( self.gl_b["yazitipi"] )
-
-    def radio_wrap(self, selected_ = False):
-        """
-        adjust wrap_mode for wikitext
-        """
-        for radio, item in self.gl_b["wrap_mode"].items():
-
-            self.gl_b["wrap_mode"][radio][2] = item[1].get_active()
-
-            if item[1].get_active():
-                if selected_ is True:
-                    return item[0]
-                self.current_editor.set_wrap_mode(getattr(gtk.WrapMode, item[0]))
-                break
-        return None
-        #    print(self.wrap_mode[radio])
-
     def open_file(self, _):
         """
         open new file from path
@@ -699,71 +412,6 @@ class WikiEditor():
             self.open(bilgi)
 
         dialog.destroy()
-
-    def set_ayar(self, data=False, set_up=False):
-        """
-        write configs to wiki.db
-        """
-        if not os.path.isfile(WIKI_DB):
-            os.system(f"cp wiki_editor.db {WIKI_DB}")
-
-        con = sqlite3.connect(WIKI_DB)
-        cur = con.cursor()
-
-# Retrun sql data as a dictionary##
-        if data is not False:
-            cur.execute('SELECT preference, value FROM settings')
-            ans = dict(cur.fetchall()) #; print(ans)
-            #split "|" and convert key item as a list
-            ans = {key: ans[key].split("|") for key in ans} #;print(ans)
-            return ans
-
-#########################################
-        # Write the data in wiki-editor.db file
-#############################################
-        # set_up data from wiki.db
-        if set_up is True:
-            data = self.set_ayar(True)
-
-            for settings in sorted(data):
-                set_value_as, set_value = data[settings]
-
-                if  settings == "wrap_mode":
-                    getattr(self.current_editor, set_value) (getattr(gtk.WrapMode, set_value_as))
-
-                elif settings == "font":
-                    self.gl_b["yazitipi"]  = pango.FontDescription(set_value_as)
-                    getattr(self.current_editor, set_value)( self.gl_b["yazitipi"] )
-
-                elif settings == "yazi_tipi" and literal_eval(set_value_as) is True:
-                    getattr(self.current_editor, set_value)(None)
-
-                elif "sekme" == settings:
-                    getattr(self.current_editor, set_value) (int(set_value_as.split(".0")[0]))
-
-                elif "sekmeleri_say" == settings:
-                    getattr(self.current_editor, set_value) (literal_eval(set_value_as))
-
-            return False
-        ###### update data from ui input ###############
-        wrap_mode = self.radio_wrap(True)
-
-        data = {
-            "sekme": [ f"{ self.gl_b['font_spin'].get_value() }", "set_tab_width"],
-            "font": [ f"{ self.gl_b['yazi'].get_font_name() }", "modify_font"],
-            "yazi_tipi": [ f"{ self.gl_b['modify_font'].get_active()}", "modify_font"],
-            "sekmeleri_say": [ f"{self.gl_b['show_number'].get_active()}", "set_show_line_numbers"],
-            "wrap_mode":[wrap_mode, 'set_wrap_mode'],
-            }
-
-        for preference, list_  in data.items():
-            set_value, set_value_as = list_
-            cur.execute("UPDATE  settings SET value='%s|%s' WHERE preference='%s'" \
-                        % (set_value,set_value_as,preference) )
-
-        con.commit()
-        self.set_ayar(set_up=True)
-        return True
 
     def save_as(self, *_):
         """
@@ -787,7 +435,7 @@ class WikiEditor():
 
         dialog.destroy()
 
-    def set_text(self, text, insert = None ):
+    def set_text(self, text, insert=None ):
         """
         set current buffer text
         """
@@ -799,19 +447,6 @@ class WikiEditor():
             self.current_buffer.delete(start, end)
             self.current_buffer.insert_at_cursor(text)
         self.current_buffer.end_user_action()
-
-    def selection_(self, head_, tail_ ):
-        """
-        set and change selection of text
-        """
-        konu = self.get_konu()
-
-        if self.current_editor and konu:
-            self.set_text(head_ + konu + tail_)
-            return True
-
-        self.ileti.set_text("Seçili hiç bir metin yok !")
-        return None
 
     def get_konu(self, all_text=False):
         """
@@ -830,41 +465,23 @@ class WikiEditor():
         self.ileti.set_text("Seçili hiç bir metin yok !")
         return False
 
-    def color_select(self, *_):
+    def set_tool_edit(self, widget, komut=None):
         """
-        build and show color selection apply to text with <span color>
+        activate on click menu item actions
         """
-        if konu:= self.get_konu():
-            renksec = gtk.ColorSelectionDialog("Bir renk seçin")
-            renksec.set_icon_from_file("../Simgeler/07-renk seç.png")
-            renksec.show()
+        for label, label_ed in zip(MENUSETUP["GORUNUM"],MENUSETUP["HIZALAMA"]):
 
-            if renksec.run() == gtk.ResponseType.OK:
-                renk = renksec.get_color_selection().get_current_color().to_floats()
-                # crazy stuff here needs to change rgb01 to rgb250
-                self.set_text('<span style="color:rgb({}, {}, {} );">{}</span>'.\
-                                format( *[i*255 for i in renk],konu))
+            if label == widget.get_label():
+                set_up = getattr(gtk.ToolbarStyle, f'{MENUSETUP["GORUNUM"][label]}' )
+                self.gl_b["showy_widgets_"][1].set_style(set_up)
+                return False
 
-            renksec.destroy()
-
-    def radio_clicked(self, bilgi):
-        """
-        insert action for categories window
-        """
-        for number in self.gl_b["radio"]:
-            if self.gl_b["radio"][number].get_active():
-                iter_ = bilgi[number].get_active_iter()
-                model = bilgi[number].get_model()
-                konu = model[iter_][0]
-                self.set_text(f"[[kategori:{konu}]]", True)
-
-        self.gl_b["pencere"].destroy()
-
-    def sed_setup(self, widget, komut = None):
-        """
-        set up text using sed regex
-        """
-        komut = menu_setup["ARACLAR"][widget.get_label()]
+            if label_ed == widget.get_label():
+                set_up = getattr(gtk.Justification, f'{MENUSETUP["HIZALAMA"][label_ed]}' )
+                self.current_editor.set_justification(set_up)
+                return False
+#####  set up text using sed regex
+        komut = MENUSETUP["ARACLAR"][widget.get_label()]
 
         if konu:= self.get_konu():
 
@@ -877,31 +494,7 @@ class WikiEditor():
                 self.set_text(dosya.read())
 
             os.system(f"rm -rf {TMP_FILE}" )
-
-    def set_tool_edit(self, widget, *_):
-        """
-        activate on click menu item actions
-        """
-        for label, label_ed in zip(menu_setup["GORUNUM"],menu_setup["HIZALAMA"]):
-
-            if label in widget.get_label():
-                set_up = getattr(gtk.ToolbarStyle, f'{menu_setup["GORUNUM"][label]}' )
-                self.gl_b["showy_widgets_"][1].set_style(set_up)
-
-            elif label_ed in widget.get_label():
-                set_up = getattr(gtk.Justification, f'{menu_setup["HIZALAMA"][label_ed]}' )
-                self.current_editor.set_justification(set_up)
-
-    def change_screen(self, *_):
-        """
-        change screen size full_screen = not full_screen
-        """
-        self.gl_b["full_screen"] = not self.gl_b["full_screen"]
-
-        if self.gl_b["full_screen"]:
-            self.pen.fullscreen()
-        else:
-            self.pen.unfullscreen()
+        return True
 
     def soru(self, *_):
         """
@@ -940,26 +533,23 @@ class WikiEditor():
         """
         if UNDEFINED in self.gl_b["yol"]:
             self.save_as()
-        else:
-            konu = self.get_konu(True)
+            return False
 
-            try:
-                with open( self.gl_b["yol"], "w", encoding="utf-8") as dosya:
-                    dosya.write(konu)
-                    self.ileti.set_text(
-                            f"'{ self.gl_b['yol'] }' dosyası kayıt edildi.."
-                        )
-                    self.current_buffer.set_modified(False)
+        konu = self.get_konu(True)
 
-            except IOError as msj:
-                mesaj(f"{self.gl_b['yol']}\nDosyası Kayıt Edilemedi.." + \
-                      f"\\nHata Kodu:-2\nHata Mesajı:{msj}" )
+        try:
+            with open( self.gl_b["yol"], "w", encoding="utf-8") as dosya:
+                dosya.write(konu)
+                self.ileti.set_text(
+                        f"'{ self.gl_b['yol'] }' dosyası kayıt edildi.."
+                    )
+                self.current_buffer.set_modified(False)
+        except IOError as msj:
+            mesaj(f"{self.gl_b['yol']}\nDosyası Kayıt Edilemedi.." + \
+                    f"\\nHata Kodu:-2\nHata Mesajı\n:{msj}" )
+            return False
 
-    def yazdir(self, widget, *_):
-        """ call print operation from wikitext  """
-        page = self.notebook.get_current_page()
-        wiki_text = self.notebook.get_nth_page(page)
-        wiki_text.yazdir(widget, data = self.gl_b["yol"] )
+        return True
 
     def open(self, dosya):
         """ open given filepath """
@@ -970,12 +560,12 @@ class WikiEditor():
                     self.set_text( das.read(), True )
                 except UnicodeDecodeError as err:
                     hata(f"Hata Kodu:5 \n\tHata Mesajı:{dosya}\
-                         \n\tdosyası okunurken hata oluştu!\n{err}\n\n")
+                         \n\tdosyası okunurken hata oluştu!\n{err}\n\n", self.notebook)
                     return False
 
         except IOError as msj:
             hata(f"{dosya}\n\tDosyası Açılamadı\n\
-                 \tHata Kodu:-3\n\tHata Mesajı:{msj}\n\n\n")
+                 \tHata Kodu:-3\n\tHata Mesajı:{msj}\n\n\n", self.notebook)
             return False
 
         language = self.gl_b["lang_manager"].guess_language(dosya)

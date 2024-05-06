@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#pylint: disable=E0611, C0415
+#pylint: disable=E0611
 """
 Tools and string variable used in WikiEditor Toplevel
 """
@@ -13,7 +13,7 @@ gi.require_version('Gtk', '3.0')
 TMP_FILE = "/tmp/wiki-editor"
 
 ###Dosya Tipi Seçenekleri############################
-langs = {"Düz Metin":"text/plain",
+LANGS = {"Düz Metin":"text/plain",
         "C":"text/x-csrc",
         "Css":"text/css",
         ".desktop":"application/x-desktop",
@@ -91,16 +91,16 @@ descriptions = {
 "Yazınız için bir kategori seçin..": "kategori",
 }
 
-simgeler = {}
+SIMGELER = {}
 
 for simge in sp_.getoutput("ls ../Simgeler").splitlines():
     simge_adi = simge.split(".")[0].split("-")[1]
     for aciklama in descriptions:
         if simge_adi.lower() in aciklama.lower():
             break
-    simgeler[simge_adi.title()] = ([
+    SIMGELER[simge_adi.title()] = ([
         aciklama.title(),
-        resim("../Simgeler/"+simge),
+        resim("../Simgeler/" + simge),
         descriptions[aciklama]
     ])
 
@@ -147,7 +147,7 @@ TEAM = r"""
 
 ##Kategoriler####################################
 #
-kategoriler= {
+CATEG= {
 "temel": ["Temel Bilgiler","Açık Kaynak Ünlüleri","Kurulum","Nasıl Belgeleri",
     "Sss","Temel Açık Kaynak Bilgileri","Temel Bilgisayar Bilgileri",
     "Temel İnternet Bilgileri","Önemli İnternet Siteleri",
@@ -204,7 +204,7 @@ MADDE = f"""sed -i 's/^/*/' {TMP_FILE}"""
 RMADDE = f"""sed -i -e 's_*__g' {TMP_FILE}"""
 ####################################################
 
-menu_setup = {
+MENUSETUP = {
     "ARACLAR":{
     "Wiki Kodlarını Pasifleştir": NO,
     "Wiki Kodlarını Pasifleştirme": RNO,
@@ -213,14 +213,14 @@ menu_setup = {
     },
 
     "GORUNUM":
-    {"Simge" : "ICONS",
-      "Metin" : "TEXT",
-    "ve":"BOTH"},
+    {"Sadece Simge" : "ICONS",
+     "Sadece Metin" : "TEXT",
+     "Metin ve Simge":"BOTH"},
 
     "HIZALAMA":
-    {"Sola Hizala": "LEFT",
+    { "Sola Hizala": "LEFT",
       "Ortala": "CENTER",
-    "Sağa Hizala": "RIGHT"},
+      "Sağa Hizala": "RIGHT"},
 }
 
 ################UI INFO MENU AŞAMALARI######################################
@@ -359,11 +359,10 @@ def mesaj(msj):
     if dialog.run() == gtk.ResponseType.OK:
         dialog.destroy()
 
-def hata(msj):
+def hata(msj, notebook):
     """
     returns custom error message for wikitext
     """
-    from __main__ import HITO as notebook
     buffer = notebook.current_buffer
     pixbuf =  GdkPixbuf.Pixbuf.new_from_file_at_size("gtk-cancel.png",128,128)
     iter_ = buffer.get_iter_at_offset(0)

@@ -560,12 +560,12 @@ class WikiEditor():
                     self.set_text( das.read(), True )
                 except UnicodeDecodeError as err:
                     hata(f"Hata Kodu:5 \n\tHata Mesajı:{dosya}\
-                         \n\tdosyası okunurken hata oluştu!\n{err}\n\n", self.notebook)
+                         \n\tdosyası okunurken hata oluştu!\n{err}\n\n", self)
                     return False
 
         except IOError as msj:
             hata(f"{dosya}\n\tDosyası Açılamadı\n\
-                 \tHata Kodu:-3\n\tHata Mesajı:{msj}\n\n\n", self.notebook)
+                 \tHata Kodu:-3\n\tHata Mesajı:{msj}\n\n\n", self)
             return False
 
         language = self.gl_b["lang_manager"].guess_language(dosya)

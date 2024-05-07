@@ -56,6 +56,7 @@ class ConfigWindow(gtk.Builder):
             self.current_buffer.set_text(f"{LICENCE}\n{SHORTCUT}")
             self.current_buffer.set_undo_manager()
             self.current_buffer.set_modified(False)
+            SET["activated"] = not SET["activated"]
 
         self.add_from_file("../Glade/tercihler.glade")
         vbox = self.get_object("hbuttonbox1")

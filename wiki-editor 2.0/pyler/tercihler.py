@@ -79,16 +79,17 @@ class ConfigWindow(gtk.Builder):
         vbox.add(kapat)
 
         data = self.set_ayar(True)
+        data = {key: list_[0] for key, list_ in  data.items() }
 
         SET["font_spin"] = self.get_object("spinbutton1")
 
         SET["font_spin"].connect("value_changed",  lambda x:
             self.wiki.set_tab_width( int( f'{x.get_value().strip("0.") }' ) ) )
 
-        SET["font_spin"].set_value( float( data["sekme"][0] ) )
+        SET["font_spin"].set_value( float( data["sekme"] ) )
 
         SET["yazi"] = self.get_object("fontbutton1")
-        SET["yazi"].set_font_name( data["font"][0] )
+        SET["yazi"].set_font_name( data["font"] )
 
         SET["yazi"].connect("font-set", lambda _:
             self.wiki.modify_font( SET["yazi"].get_font_desc() ) )
@@ -98,7 +99,7 @@ class ConfigWindow(gtk.Builder):
         SET["show_number"].connect( "toggled", lambda x:
             self.wiki.set_show_line_numbers( x.get_active() ) )
 
-        SET["show_number"].set_active(literal_eval(data["sekmeleri_say"][0] ))
+        SET["show_number"].set_active(literal_eval(data["sekmeleri_say"] ))
 
         hide_widget = self.gl_b["showy_widgets_"][0]
 
@@ -109,15 +110,15 @@ class ConfigWindow(gtk.Builder):
         SET["modify_font"] = self.get_object("checkbutton2")
         SET["modify_font"].connect("toggled", self.set_font)
 
-        SET["modify_font"].set_active( literal_eval(data["yazi_tipi"][0]) )
+        SET["modify_font"].set_active( literal_eval(data["yazi_tipi"]) )
 
-        for add in range(1,4):
-            WRAP[add][1] = self.get_object(f"radiobutton{add}")
-            WRAP[add][1].connect("clicked", self.radio_wrap)
-            WRAP[add][2] = False
+        for no, item in WRAP.items():
+            item[1] = self.get_object(f"radiobutton{no}")
+            item[1].connect("clicked", self.radio_wrap)
+            item[2] = False
 
-            if WRAP[add][0] == data["wrap_mode"][0]:
-                WRAP[add][1].set_active(True)
+            if item[0] == data["wrap_mode"]:
+                item[1].set_active(True)
 
         pencere.show_all()
 

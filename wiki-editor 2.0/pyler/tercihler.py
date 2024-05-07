@@ -52,7 +52,7 @@ class ConfigWindow(gtk.Builder):
 
         self.notebook.show()
 
-        if SET["activated"]:
+        if SET["activated"] is True:
             self.current_buffer.set_text(f"{LICENCE}\n{SHORTCUT}")
             self.current_buffer.set_undo_manager()
             self.current_buffer.set_modified(False)
